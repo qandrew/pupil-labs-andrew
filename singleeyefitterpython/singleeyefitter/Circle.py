@@ -5,10 +5,12 @@
 
 """
 
+import numpy as np #to store lists as mathematical arrays
+
 class Circle3D:
 	def __init__(self,centre=[0,0,0],normal=[0,0,0],radius=0):
-		self.centre = centre
-		self.normal = normal
+		self.centre = np.array(centre)
+		self.normal = np.array(normal)
 		self.radius = radius
 
 	def __str__(self):
@@ -16,7 +18,3 @@ class Circle3D:
 
 	def is_same(self,circle):
 		return  (self.centre == circle.centre and self.normal == circle.normal and self.radius == circle.radius)
-
-temp = Circle3D()
-print temp		
-

@@ -9,27 +9,39 @@ import numpy as np
 
 class Conic:
 
-	def __init__(self, ellipse):
+	def __init__(self, ellipse=None):
 		#a Conic is defined by 6 scalar parameters A,B,C,D,E,F
 
-		#extracting information from ellipse
-		ax = np.cos(ellipse.angle)
-		ay = np.sin(ellipse.angle)
+		if ellipse != None:
+			#extracting information from ellipse
+			ax = np.cos(ellipse.angle)
+			ay = np.sin(ellipse.angle)
 
-		a2 = np.square(ellipse.major_radius)
-		b2 = np.square(ellipse.minor_radius)
+			a2 = np.square(ellipse.major_radius)
+			b2 = np.square(ellipse.minor_radius)
 
-		#scalars
-		self.A = (ax*ax)/a2 + (ay*ay)/b2
-		self.B = 2*(ax*ay)/a2 - 2*(ax*ay)/b2
-		self.C = (ay*ay)/a2 +(ax*ax)/b2
-		self.D = (-2*ax*ay*ellipse.centre[1] - 2*ax*ax*ellipse.centre[0])/a2 + (2*ax*ay*ellipse.centre[1] - 2*ay*ay*ellipse.centre[0])/b2
-		self.E = (-2*ax*ay*ellipse.centre[0] - 2*ay*ay*ellipse.centre[1])/a2 + (2*ax*ay*ellipse.centre[0] - 2*ax*ax*ellipse.centre[1])/b2
-		self.F = (2*ax*ay*ellipse.centre[0]*ellipse.centre[1]+ax*ax*ellipse.centre[0]*ellipse.centre[0]+ay*ay*ellipse.centre[1]*ellipse.centre[1])/a2+ (-2*ax*ay*ellipse.centre[0]*ellipse.centre[1]+ ay*ay*ellipse.centre[0]*ellipse.centre[0]+ax*ax*ellipse.centre[1]*ellipse.centre[1])/b-1
+			#scalars
+			self.A = (ax*ax)/a2 + (ay*ay)/b2
+			self.B = 2*(ax*ay)/a2 - 2*(ax*ay)/b2
+			self.C = (ay*ay)/a2 +(ax*ax)/b2
+			self.D = (-2*ax*ay*ellipse.centre[1] - 2*ax*ax*ellipse.centre[0])/a2 + (2*ax*ay*ellipse.centre[1] - 2*ay*ay*ellipse.centre[0])/b2
+			self.E = (-2*ax*ay*ellipse.centre[0] - 2*ay*ay*ellipse.centre[1])/a2 + (2*ax*ay*ellipse.centre[0] - 2*ax*ax*ellipse.centre[1])/b2
+			self.F = (2*ax*ay*ellipse.centre[0]*ellipse.centre[1]+ax*ax*ellipse.centre[0]*ellipse.centre[0]+ay*ay*ellipse.centre[1]*ellipse.centre[1])/a2+ (-2*ax*ay*ellipse.centre[0]*ellipse.centre[1]+ ay*ay*ellipse.centre[0]*ellipse.centre[0]+ax*ax*ellipse.centre[1]*ellipse.centre[1])/b2-1
+
+		else:
+			self.A = float()
+			self.B = float()
+			self.C = float()
+			self.D = float()
+			self.E = float()
+			self.F = float()
 
 	def operator(self,x,y):
 		#this function returns the conic based on coordinates x and y
 		return A*x*x + B*x*y + C*y*y + D*x + E*y + F
+
+	def __str__(self):
+		return "Conic: A " + str(self.A) + ", B " + str(self.B) + ', C ' + str(self.C) + ', D ' + str(self.D) + ', E ' + str(self.E) + ', F ' + str(self.F)
 
 	def transformed(self,a,t):
 		#this function returns the transformed conic
@@ -63,4 +75,3 @@ class Conic:
                 2 * A*a(0, 1)*t(0) + B*a(0, 1)*t(1) + B*a(1, 1)*t(0) + 2 * C*a(1, 1)*t(1) + D*a(0, 1) + E*a(1, 1),
                 A*np.square(t(0)) + B*t(0)*t(1) + C*np.square(t(1)) + D*t(0) + E*t(1) + F
                 )
-

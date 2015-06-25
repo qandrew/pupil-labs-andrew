@@ -11,7 +11,7 @@ import scipy
 class Ellipse:
 
 	def __init__(self,centre=[0,0],major_radius=0.0,minor_radius=0.0,angle=0.0):
-		self.centre = centre
+		self.centre = np.array(centre)
 		self.major_radius = major_radius
 		self.minor_radius = minor_radius
 		self.angle = angle
