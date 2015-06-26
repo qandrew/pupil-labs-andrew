@@ -14,7 +14,7 @@ class Circle3D:
 		self.radius = radius
 
 	def __str__(self):
-		return "Circle center: " + str(self.centre) + ", normal: " + str(self.normal) + ", radius: " + str(self.radius)
+		return "Circle { center: " + str(self.centre) + ", normal: " + str(self.normal) + ", radius: " + str(self.radius) + " }"
 
 	def is_same(self,circle):
 		return  (self.centre == circle.centre and self.normal == circle.normal and self.radius == circle.radius)

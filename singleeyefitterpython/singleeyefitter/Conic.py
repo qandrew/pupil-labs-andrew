@@ -41,7 +41,7 @@ class Conic:
 		return A*x*x + B*x*y + C*y*y + D*x + E*y + F
 
 	def __str__(self):
-		return "Conic: A " + str(self.A) + ", B " + str(self.B) + ', C ' + str(self.C) + ', D ' + str(self.D) + ', E ' + str(self.E) + ', F ' + str(self.F)
+		return "Conic { " + str(self.A) + "x^2 + " + str(self.B) + 'xy + ' + str(self.C) + 'y^2 + ' + str(self.D) + 'x + ' + str(self.E) + 'y + ' + str(self.F) + " = 0 }"
 
 	def transformed(self,a,t):
 		#this function returns the transformed conic
