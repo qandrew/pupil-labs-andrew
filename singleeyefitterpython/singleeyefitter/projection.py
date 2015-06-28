@@ -15,6 +15,7 @@ import Conic
 import Sphere
 import Ellipse
 import Conicoid
+import solve
 
 def project_circle(circle,focal_length):
 	c = circle.centre
@@ -102,14 +103,14 @@ def project_circle(circle,focal_length):
 
 def project_sphere(sphere,focal_length):
 	return Ellipse.Ellipse(
-			focal_length * sphere.centre / sphere.centre[2], #ellipse centre
+			[focal_length * sphere.centre[0] / sphere.centre[2],focal_length * sphere.centre[1] / sphere.centre[2]], #ellipse centre
 			focal_length * sphere.radius / sphere.centre[2], #major
 			focal_length * sphere.radius / sphere.centre[2], #minor
 			0 #angle
 		)
 
 def project_point(point,focal_length):
-	return focal_length*np.array(point)/point[2]
+	return [focal_length*np.array(point)[0]/point[2],focal_length*np.array(point)[1]/point[2]]
 
 def unproject(ellipse,circle_radius,focal_length):
 	circle = Circle.Circle3D()
@@ -120,7 +121,7 @@ def unproject(ellipse,circle_radius,focal_length):
 	conic = Conic.Conic(ellipse)
 	cam_centre_in_ellipse = np.array([[0],[0],[-focal_length]])
 	pupil_cone = Conicoid.Conicoid()
-	pupil_cone.initialize_conic(conic,cam_centre_in_ellipse)
+	pupil_cone.initialize_conic(conic,cam_centre_in_ellipse) #this step is fine
 
 	a = pupil_cone.A
 	b = pupil_cone.B
@@ -146,15 +147,18 @@ def unproject(ellipse,circle_radius,focal_length):
 	#where does this solve thing in the projection.h file come from???????
 
 	"""FIX HERE IT DOESNT WORK"""
-	#lamb = solve(1., -(a + b + c), (b*c + c*a + a*b - f*f - g*g - h*h), -(a*b*c + 2 * f*g*h - a*f*f - b*g*g - c*h*h))
-	lamb = np.array([[-2],[-1],[1]])
-	if (lamb[0] >= lamb[1]):
+	lamb = solve.solve_four(1., 
+		-(a + b + c), 
+		(b*c + c*a + a*b - f*f - g*g - h*h), 
+		-(a*b*c + 2 * f*g*h - a*f*f - b*g*g - c*h*h) )
+	print lamb
+	if (lamb[0] < lamb[1]):
 		print "Lambda 0 > Lambda 1, die"
 		return
-	if (lamb[1] > 0):
+	if (lamb[1] <= 0):
 		print "Lambda 1 > 0, die"
 		return
-	if (lamb[2] < 0):
+	if (lamb[2] >= 0):
 		print "Lambda 2 < 0, die"
 		return
 
@@ -163,19 +167,25 @@ def unproject(ellipse,circle_radius,focal_length):
 	m = 0.0
 	l = np.sqrt(lamb[0] - lamb[1])/(lamb[0]-lamb[2])
 
+	# print "n: " + str(n) + ", m: " + str(m) + ", l:" + str(l)
+
 	#Safaee-Rad 1992 Eq 8
 
 	#Safaee-Rad 1992 Eq 12
 	t1 = (b - lamb)*g - f*h
 	t2 = (a - lamb)*f - g*h
-	if (g != 0):
-		t3 = -(a - lamb)*(t1/t2)/g - h/g
-	else:
-		t3 = [[0],[0],[0]]
+	t3 = -(a - lamb)*(t1/t2)/g - h/g
 
 	mi = 1 / np.sqrt(1 + np.square(t1 / t2) + np.square(t3))
 	li = (t1 / t2) * mi
 	ni = t3 * mi
+
+	print "t1: " +str(t1)
+	print "t2: " +str(t2)
+	print "t3: " +str(t3)
+	print "li: " +str(li) 
+	print "mi: " +str(mi)
+	print "ni: " +str(ni)
 
 	#If li,mi,ni follow the left hand rule, flip their signs
 	li = np.reshape(li,(3,))
@@ -188,9 +198,11 @@ def unproject(ellipse,circle_radius,focal_length):
 		ni = -ni
 
 	T1 = np.zeros((3,3))
-	T1[0] = np.reshape(li,(1,3))
-	T1[1] = np.reshape(mi,(1,3))
-	T1[2] = np.reshape(ni,(1,3))
+	T1[:,0] = li
+	T1[:,1] = mi
+	T1[:,2] = ni
+
+	print T1
 
 	#Calculate t2 a translation transformation from the canonical
 	#conic frame to the image space in the canonical conic frame
@@ -199,9 +211,12 @@ def unproject(ellipse,circle_radius,focal_length):
 	"""3 or 4???"""
 	T2 = np.identity(3) #the transformation matrix
 	temp = -(u*li + v*mi + w*ni) / lamb
-	T2[0,2] = temp[0,0]
-	T2[1,2] = temp[1,0]
-	T2[2,2] = temp[2,0]
+	print temp
+	T2[0,2] = temp[0]
+	T2[1,2] = temp[1]
+	T2[2,2] = temp[2]
+
+	# print "T2: " + str(T2)
 
 	solutions = Circle.Circle3D()
 	ls = [l, -l]
@@ -210,7 +225,12 @@ def unproject(ellipse,circle_radius,focal_length):
 
 	for i in (0,1):
 		l = ls[i]
+		# T1 = [[-0.0343973,0.988934,-0.144312],
+  # 			[0.987195,0.0561263,0.149318],
+  # 			[-0.155766,0.137328,0.978201]]
+
 		gaze = T1 * np.matrix([[l],[m],[n]])
+		# print gaze
 
 		#calculate t3, rotation from frame where Z is circle normal
 
@@ -264,23 +284,38 @@ def unproject(ellipse,circle_radius,focal_length):
 			gaze = -gaze
 		np.linalg.norm(gaze)
 
+		centre = np.reshape(centre,3)
+
 		solutions[i] = Circle.Circle3D(centre,gaze,circle_radius)
 
+	#print T3
 	return solutions
 
 if __name__ == '__main__':
-	#testing project_circle
-	circle = Circle.Circle3D([-111.3327,11.8036,76.7857],[0.0843856,0.548524,-0.831865],5.07561)
-	huding = project_circle(circle,1030.3) #not correct
-	print huding
-	circle = Circle.Circle3D([-21.9309,6.70676,79.7034],[-0.798796,0.123788,-0.588729],16.1225)
-	print project_circle(circle,1030.3) #correct
+
+	#testing uproject
+	ellipse = Ellipse.Ellipse((-152.295,157.418),46.7015,32.4274,0.00458883*scipy.pi)
+	huding = unproject(ellipse,1,1030.3) 
+	print huding[0] #should get { c: (1.06199,-0.715622,7.39044), n: (-0.697086,0.603144,-0.38767), r: 1 }
+
+	# testing project_circle
+	# circle = Circle.Circle3D([1.35664,-0.965954,9.33736],[0.530169,-0.460575,-0.711893],1)
+	# print project_circle(circle,1030.3) #correct
+	# circle = Circle.Circle3D([-1.36026,0.415986,4.9436],[-0.701632,0.102242,-0.705166],1)
+	# print project_circle(circle,1030.3) #correct
+	# circle = Circle.Circle3D((0.68941,0.58537,4.71737),(0.0464665,0.794044,-0.606082),1)
+	# print project_circle(circle,1030.3) #correct
+	# circle = Circle.Circle3D([-11.3327,11.8036,76.7857],[0.0843856,0.548524,-0.831865],5.07561)
+	# print project_circle(circle,1030.3) #correct
+	# circle = Circle.Circle3D([-21.9309,6.70676,79.7034],[-0.798796,0.123788,-0.588729],16.1225)
+	# print project_circle(circle,1030.3) #correct
+
+	#testing project_point
+	# point = [0.493976,-0.376274,4.35446]
+	# print project_point(point,1030.3) #good
 
 	#testing project_sphere
-	sphere = Sphere.Sphere(centre=[0,1,2],radius=5)
-	
-	#testing uproject
-	# ellipse = Ellipse.Ellipse([-152.296,157.418],46.7015,32.4274,0.014137)
-	# huding = unproject(ellipse,1,0)
-	# print huding[0]
-	# print huding[1]
+	# sphere = Sphere.Sphere(centre=[-12.3454,5.22129,86.7681],radius=12)
+	# print project_sphere(sphere,1030.3) #GOOD
+	# sphere = Sphere.Sphere(centre=(10.06,-6.20644,86.8967),radius=12)
+	# print project_sphere(sphere,1030.3) #GOOD
