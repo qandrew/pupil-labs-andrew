@@ -151,7 +151,6 @@ def unproject(ellipse,circle_radius,focal_length):
 		-(a + b + c), 
 		(b*c + c*a + a*b - f*f - g*g - h*h), 
 		-(a*b*c + 2 * f*g*h - a*f*f - b*g*g - c*h*h) )
-	print lamb
 	if (lamb[0] < lamb[1]):
 		print "Lambda 0 > Lambda 1, die"
 		return
@@ -163,9 +162,9 @@ def unproject(ellipse,circle_radius,focal_length):
 		return
 
 	#Calculate l,m,n of plane
-	n = np.sqrt(lamb[1] - lamb[2])/(lamb[0]-lamb[2])
+	n = np.sqrt((lamb[1] - lamb[2])/(lamb[0]-lamb[2]))
 	m = 0.0
-	l = np.sqrt(lamb[0] - lamb[1])/(lamb[0]-lamb[2])
+	l = np.sqrt((lamb[0] - lamb[1])/(lamb[0]-lamb[2]))
 
 	# print "n: " + str(n) + ", m: " + str(m) + ", l:" + str(l)
 
@@ -179,13 +178,6 @@ def unproject(ellipse,circle_radius,focal_length):
 	mi = 1 / np.sqrt(1 + np.square(t1 / t2) + np.square(t3))
 	li = (t1 / t2) * mi
 	ni = t3 * mi
-
-	print "t1: " +str(t1)
-	print "t2: " +str(t2)
-	print "t3: " +str(t3)
-	print "li: " +str(li) 
-	print "mi: " +str(mi)
-	print "ni: " +str(ni)
 
 	#If li,mi,ni follow the left hand rule, flip their signs
 	li = np.reshape(li,(3,))
@@ -201,22 +193,14 @@ def unproject(ellipse,circle_radius,focal_length):
 	T1[:,0] = li
 	T1[:,1] = mi
 	T1[:,2] = ni
-
-	print T1
+	T1 = np.asmatrix(T1.T)
 
 	#Calculate t2 a translation transformation from the canonical
 	#conic frame to the image space in the canonical conic frame
 	#Safaee-Rad 1992 eq (14)
 
-	"""3 or 4???"""
-	T2 = np.identity(3) #the transformation matrix
 	temp = -(u*li + v*mi + w*ni) / lamb
-	print temp
-	T2[0,2] = temp[0]
-	T2[1,2] = temp[1]
-	T2[2,2] = temp[2]
-
-	# print "T2: " + str(T2)
+	T2 = [[temp[0]],[temp[1]],[temp[2]]]
 
 	solutions = Circle.Circle3D()
 	ls = [l, -l]
@@ -225,12 +209,8 @@ def unproject(ellipse,circle_radius,focal_length):
 
 	for i in (0,1):
 		l = ls[i]
-		# T1 = [[-0.0343973,0.988934,-0.144312],
-  # 			[0.987195,0.0561263,0.149318],
-  # 			[-0.155766,0.137328,0.978201]]
 
 		gaze = T1 * np.matrix([[l],[m],[n]])
-		# print gaze
 
 		#calculate t3, rotation from frame where Z is circle normal
 
@@ -243,21 +223,21 @@ def unproject(ellipse,circle_radius,focal_length):
 				[1,0,0],
 				[0,0,1]])
 		else:
-			T3 = np.matrix([[0,-n*np.sign(l),0], 
+			T3 = np.matrix([[0,-n*np.sign(l),l], 
 				[np.sign(l),0,0],
-				[0,abs(l),n]])
+				[0,int(abs(l)),n]]) #round down
 
 		#calculate circle center 
 		#Safaee-Rad 1992 eq (38), using T3 as defined in (36)
 		lamb =  np.reshape(lamb,(3,))
-		T30 = abs(np.array([T3[0,0],T3[0,1],T3[0,2]]))
-		T31 = np.cross(np.array([T3[0,0],T3[0,1],T3[0,2]]), np.array([T3[2,0],T3[2,1],T3[2,2]]))
-		T32 = np.cross(np.array([T3[1,0],T3[1,1],T3[1,2]]), np.array([T3[2,0],T3[2,1],T3[2,2]]))
-		T33 = abs(np.array([T3[2,0],T3[2,1],T3[2,2]]))
+		T30 = np.array([T3[0,0]**2,T3[1,0]**2,T3[2,0]**2 ])
+		T31 = np.array([ [T3[0,0]*T3[0,2]], [T3[1,0]*T3[1,2]] , [T3[2,0]*T3[2,2]] ]) #good
+		T32 = np.array([ [T3[0,1]*T3[0,2]], [T3[1,1]*T3[1,2]] , [T3[2,1]*T3[2,2]] ]) #good
+		T33 = np.array([T3[0,2]**2 ,T3[1,2]**2 ,T3[2,2]**2 ])
 
 		A = np.dot(lamb,T30)
-		B = np.dot(lamb,T31)
-		C = np.dot(lamb,T32)
+		B = np.dot(lamb,T31) #good
+		C = np.dot(lamb,T32) #good
 		D = np.dot(lamb,T33)
 
 		# Safaee-Rad 1992 eq 41
@@ -267,16 +247,15 @@ def unproject(ellipse,circle_radius,focal_length):
 		centre_in_Xprime[1] = -C / A * centre_in_Xprime[2]
 
 		# Safaee-Rad 1992 eq 34
-		"""3 or 4???"""
-		T0 = np.matrix(np.identity(3)) #the transformation matrix
-		T0[2,2] = focal_length
+		T0 = [[0],[0],[focal_length]]
 
 		# Safaee-Rad 1992 eq 42 using eq 35
-		centre = T0*T1*T2*T3*centre_in_Xprime
+		#centre = T0*T1*T2*
+		centre = T0+T1*(T2+T3*centre_in_Xprime)
 
 		if (centre[2] < 0):
 			centre_in_Xprime = -centre_in_Xprime
-			centre = T0*T1*T2*T3*centre_in_Xprime #make sure z is positive
+			centre = T0+T1*(T2+T3*centre_in_Xprime) #make sure z is positive
 
 		gaze = np.reshape(gaze,(3,))
 
@@ -288,15 +267,22 @@ def unproject(ellipse,circle_radius,focal_length):
 
 		solutions[i] = Circle.Circle3D(centre,gaze,circle_radius)
 
-	#print T3
 	return solutions
 
 if __name__ == '__main__':
 
 	#testing uproject
+	ellipse = Ellipse.Ellipse((150.254,122.157),68.3431,33.9279,0.958216*scipy.pi)
+	huding = unproject(ellipse,1,1030.3) 
+	print huding[0]
+	#sol0: Circle { centre: (0.682255,0.533441,4.72456), normal: (-0.188279,-0.909715,-0.370094), radius: 1 }
+
+	print " "
+
 	ellipse = Ellipse.Ellipse((-152.295,157.418),46.7015,32.4274,0.00458883*scipy.pi)
 	huding = unproject(ellipse,1,1030.3) 
-	print huding[0] #should get { c: (1.06199,-0.715622,7.39044), n: (-0.697086,0.603144,-0.38767), r: 1 }
+	print huding[0] 
+	#sol0: Circle { centre: (-2.23168,2.29378,15.1334), normal: (0.124836,-0.81497,-0.565897), radius: 1 }
 
 	# testing project_circle
 	# circle = Circle.Circle3D([1.35664,-0.965954,9.33736],[0.530169,-0.460575,-0.711893],1)

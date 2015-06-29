@@ -1,7 +1,11 @@
-import singleeyefitter
-import Conic
-import Ellipse
 import Circle
-import Concoid
+import Conic
+import Conicoid
+import Ellipse
 import Sphere
-import intersect
+import projection
+import solve
+import singleeyefitter
+
+
+#import intersect
