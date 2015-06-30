@@ -87,11 +87,3 @@ def scaled(ellipse,scale):
 		ellipse.major_radius.a,
 		ellipse.minor_radius.a,
 		ellipse.angle.a)
-
-
-""" Test code, can be deleted later
-	test = Ellipse([0,5],3,5)
-	print test.pointAlongEllipse(1)
-	print test 
-	test2 = Ellipse()
-"""
