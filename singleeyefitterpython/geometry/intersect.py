@@ -11,51 +11,146 @@
 
 
 import numpy as np
-import sympy
+import scipy
+
+class Line2D:
+	def __init__(self, origin = [0,0], direction = None):
+		self.origin = origin
+		self.direction = [direction[0]/np.linalg.norm(direction),direction[1]/np.linalg.norm(direction)]
+
+	def __str__(self):
+		return "Line { origin:" + str(self.origin) + " direction: " + str(self.direction) + " }"
+
+	# other functions from the eigen class that exist, but may not be used
+	def distance(self,point):
+		# the distance of a point p to its projection onto the line
+		pass
+	def intersection_hyperplane(self,hyperplane):
+		# the parameter value of intersection between this and given hyperplane
+		pass
+	def intersection_point(self, hyperplane):
+		# returns parameter value of intersection between this and given hyperplane
+		pass
+	def projection(self,point):
+		# returns projection of a point onto the line
+		pass
+	def pointAt(self,x):
+		# point at x along this line
+		pass
+
+class Line3D:
+	def __init__(self, origin = [0,0,0], direction = None):
+		self.origin = origin
+		self.direction = [direction[0]/np.linalg.norm(direction),
+			direction[1]/np.linalg.norm(direction),
+			direction[2]/np.linalg.norm(direction)]
+
+	def __str__(self):
+		return "Line { origin:" + str(self.origin) + " direction: " + str(self.direction) + " }"
 
 def intersect_2D_lines(line1,line2):
 	#finds intersection of 2 lines in 2D. the original intersect() function
-	"""	PASS
-		x1 = line1.origin[0]
-		y1 = line1.origin[1]
-		x2 = (line1.origin + line1.direction)[0]
-		y2 = (line1.origin + line1.direction)[1]
-		x3 = line2.origin[0]
-		y3 = line2.origin[1]
-		x4 = (line2.origin + line2.direction)[0]
-		y4 = (line2.origin + line2.direction)[1]
+	x1 = line1.origin[0]
+	y1 = line1.origin[1]
+	x2 = line1.origin[0] + line1.direction[0]
+	y2 = line1.origin[1] + line1.direction[1]
+	x3 = line2.origin[0]
+	y3 = line2.origin[1]
+	x4 = line2.origin[0] + line2.direction[0]
+	y4 = line2.origin[1] + line2.direction[1]
 
-		denom = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4)
+	denom = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4)
+	if (abs(denom) <= 10e-15 ):
+		# rounding errors by python since it isn't perfect.
+		# though this is sketchy math :P
+		denom = 0
 
-		print x1,x2,x3,x4,denom
+	if (denom == 0): #edge case
+		#they have the same slope
+		if (line1.direction[0] == 0):
+			#vertical line, give it some big value
+			slope = None
+		else:
+			slope = line1.direction[1]/line1.direction[0]
+		if (x3 == x1):
+			x1 = x2 #switch vars
+			x3 = x4
+			if (x3 == x4):
+				if (y3 == y1):
+					print "Inputs are same lines, here is one of many points of intersection"
+					return np.matrix('%s;%s' % (x1,y1))
+				else:
+					print "Parallel Lines, no intersect"
+					return
+		if ((y3-y1)/(x3-x1) == slope):
+			#is the same line
+			print "Inputs are same lines, here is one of many points of intersection"
+			return np.matrix('%s;%s' % (x1,y1))
+		else:
+			#not the same line
+			print "Parallel Lines, no intersect"
+			return
+	else:
+		#there exists an intersection
 		px = ((x1*y2 - y1*x2)*(x3-x4) - (x1-x2)*(x3*x4 - y3*x4))/denom
 		py = ((x1*y2 - y1*x2)*(y3-y4) - (y1-y2)*(x3*x4 - y3*x4))/denom
-
 		return np.matrix('%s;%s' % (px,py))
-	"""
-
-def nearest_intersect(lines):
-	#finds the learest intersection of many lines (which may not be a real intersection)
-	#the original nearest_intersect(const Range& lines) function
-	Vector = np.array()
-	Matrix = np.matrix()
-
 
 def nearest_intersect_3D_lines(line1, line2):
-	#if 2D, then just use intersect_2D_line code
-	if (dimension == 2):
-		return intersect_2D_lines(line1,line2)
-	#for lines that are not 2D, was the original nearest() function for general-dimension lines
-	else:
-		lines = [line1,line2]
-		return nearest_intersect(lines)
+	# just use the generic nearest intersection function
+	return nearest_intersect([line1, line2])
+
+def nearest_intersect_3D(lines):
+	#finds the learest intersection of many lines (which may not be a real intersection)
+	#the original nearest_intersect(const Range& lines) function
+	A = np.zeros((3,3))
+	b = np.zeros((3,1))
+	Ivv = [] #vector of matrices
+	for line in lines:
+		vi = np.asmatrix(line.direction)
+		vi = np.reshape(vi,(3,1))
+		pi = np.asmatrix(line.origin)
+		pi = np.reshape(pi,(3,1))
+
+		Ivivi = np.identity(3) - vi*vi.T
+		Ivv.append(Ivivi)
+
+		A += Ivivi
+		b += Ivivi *pi
+
+	#correct to here
+
+	# x = A.partialPivLu.solve(b) #WHAT?
+	#not sure if partialPivLu actually does anything...
+
+	print A
+	print b
+
+	return np.linalg.solve(A,b)
+
 
 def sphere_intersect(line,sphere):
 	#intersection between a line and a sphere, originally called intersect(line,sphere)
 	Vector = []
 
-a1 = sympy.Line((0,0,0),(3,3))
-a2 = sympy.Line((0,0),(3,10))
-c = a1.intersection(sympy.Point(4,4))
-if c:
-	print "ay"
+
+################################################
+if __name__ == '__main__':
+
+	#testing stuff
+	# huding = Line2D([5,7],[10,10])
+	# huding2 = Line2D([3,5],[-1,-1])
+	# print intersect_2D_lines(huding, huding2)
+
+	#testing nearest_intersect_3D
+	# huding = Line3D([0.835233,3.67143,20], [-0.303085,-0.54173,-0.784008])
+	# huding2 = Line3D([0, 0, 0], [-0.0843631, 0.00459802, 0.996424])
+	# print nearest_intersect_3D([huding, huding2])
+
+	huding = Line3D([ 0.837533,  3.67339, 20], [ -0.427425,-0.293268,-0.855162])
+	huding2 = Line3D([0, 0, 0], [ -0.150507,0.109365,0.982541])
+	print nearest_intersect_3D([huding, huding2])
+
+	# huding = Line3D([0.835451, 3.67313, 20],[0.0687859, -0.42695, -0.901655])
+	# huding2 = Line3D([0, 0, 0],[0.0852856, 0.0771611, 0.993364])
+	# print nearest_intersect_3D([huding, huding2])

@@ -123,7 +123,8 @@ class EllipseDistCalculator:
 	def calculate_ceres(self,x,y,):
 		rAxt = [self.rA[0][0]*x.a + self.rA[0][1]*y.a - self.rAt[0], self.rA[0][0] * x.v + self.rA[0][1] * y.v ]
 		rAyt = [self.rA[1][0]*x.a + self.rA[1][1]*y.a - self.rAt[1], self.rA[1][0] * x.v + self.rA[1][1] * y.v ]
-		xy_dist = np.linalg.norm(rAxt, rAyt)
+		xy_dist = [rAxt, rAyt]
+		#xy_dist = np.linalg.norm(rAxt, rAyt) figure out normalizing later, but not sure if this function is used
 		return r - xy_dist
 
 	def calculate(self,x,y):
@@ -164,7 +165,8 @@ def EllipseGoodnessFunctionOperator(self,eye,theta,psi,pupil_radius,focal_length
 	# as radialDotEye == -1) with additional penalty for how far out we
 	# are, again to push the gradient back inwards.
 	if (theta < 0 or theta > scipy.pi or psi < -scipy.pi or psi > 0):
-		ret = -255 - np.linalg.norm(camera_centre - pupil_circle.centre)
+		normalized = (camera_centre - pupil_circle.centre)/np.linalg.norm(camera_centre - pupil_circle.centre)
+		ret = -255 - normalized
 		if (theta < 0):
 			ret += theta
 		elif (theta > scipy.pi):
@@ -210,7 +212,8 @@ class EllipsePointDistanceFunction:
 
 	def operator(t, e):
 		pt = self.ellipse.pointAlongEllipse(t[0])
-		e[0] = np.linalg.norm(x - pt[0], y - pt[1]) #pt[0] is x, pt[1] is y. See Ellipse.py for further info
+		temp = [x - pt[0],y - pt[1]]
+		e[0] = temp.np.linalg.norm(temp) #pt[0] is x, pt[1] is y. See Ellipse.py for further info
 		return True
 
 #class PupilContrastTerm(spii.Term): #what do I want to do about this??

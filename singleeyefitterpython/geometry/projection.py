@@ -110,6 +110,8 @@ def project_sphere(sphere,focal_length):
 		)
 
 def project_point(point,focal_length):
+	print np.array(point)
+	print np.array(point).shape
 	return [focal_length*np.array(point)[0]/point[2],focal_length*np.array(point)[1]/point[2]]
 
 def unproject(ellipse,circle_radius,focal_length):
@@ -261,7 +263,7 @@ def unproject(ellipse,circle_radius,focal_length):
 
 		if (np.dot(gaze,centre) > 0):
 			gaze = -gaze
-		np.linalg.norm(gaze)
+		gaze = gaze/np.linalg.norm(gaze) #normalizing
 
 		centre = np.reshape(centre,3)
 
@@ -297,8 +299,8 @@ if __name__ == '__main__':
 	# print project_circle(circle,1030.3) #correct
 
 	#testing project_point
-	# point = [0.493976,-0.376274,4.35446]
-	# print project_point(point,1030.3) #good
+	point = [0.493976,-0.376274,4.35446]
+	print project_point(point,1030.3) #good
 
 	#testing project_sphere
 	# sphere = Sphere.Sphere(centre=[-12.3454,5.22129,86.7681],radius=12)
