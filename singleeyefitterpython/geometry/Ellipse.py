@@ -10,13 +10,15 @@ import scipy
 
 class Ellipse:
 
-	def __init__(self,centre=[0,0],major_radius=0.0,minor_radius=0.0,angle=0.0):
+	def __init__(self,centre=[0,0],major_radius=0.0,minor_radius=0.0,angle=0.0, conic = None):
 		self.centre = np.array(centre)
 		self.major_radius = major_radius
 		self.minor_radius = minor_radius
 		self.angle = angle
+		if conic:
+			self._initialize_conic(conic)
 
-	def initialize_conic(self, conic):
+	def _initialize_conic(self, conic):
 		#to initialize with a conic, create the ellipse first (temp = Ellipse())
 		#then call with the conic: (temp.initialize_conic(some_conic)). 
 		#this is because python can only have 1 __init__() function.
@@ -74,16 +76,3 @@ class Ellipse:
 		xt = self.centre[0] + self.major_radius*np.cos(self.angle)*np.cos(theta) - self.minor_radius*np.sin(self.angle)*np.sin(theta)
 		yt = self.centre[1] + self.major_radius*np.sin(self.angle)*np.cos(theta) + self.major_radius*np.cos(self.angle)*np.sin(theta)
 		return [xt,yt]
-
-#global functions.
-
-def scaled(ellipse,scale): 
-	#not sure what this function does on the ellipse.h file...
-	
-	#THIS FUNCTION DOESNT WORK CURRENTLY
-	return(
-		ellipse.centre[0].a,
-		ellipse.centre[1].a,
-		ellipse.major_radius.a,
-		ellipse.minor_radius.a,
-		ellipse.angle.a)

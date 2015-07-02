@@ -5,11 +5,6 @@
 
 """
 
-#THIS FILE IS INCOMPLETE
-
-#ACTUALLY JUST IGNORE THIS FILE. USE SYMPY
-
-
 import numpy as np
 import scipy
 
