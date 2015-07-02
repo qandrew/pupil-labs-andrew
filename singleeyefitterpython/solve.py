@@ -10,12 +10,15 @@
 
 import numpy as np
 import scipy
+import logging
+logging.info('Starting logger for...') 
+logger = logging.getLogger(__name__)
 
 def solve(a):
 	if (a == 0):
 		return 0
 	else:
-		print "ERROR: No Solution"
+		logger.error("No Solution")
 		return
 
 def solve_two(a,b):
@@ -32,7 +35,7 @@ def solve_three(a,b,c):
 	# Pg 184
 	det = np.square(b) - 4*a*c
 	if (det < 0):
-		print "ERROR: No Solution"
+		logger.error("No Solution")
 		return
 	sqrtdet = np.sqrt(det)
 	if b >= 0:

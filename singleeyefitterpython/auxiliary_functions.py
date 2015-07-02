@@ -11,7 +11,10 @@ import numpy as np
 import math
 import cv2
 import scipy
-from geometry import *
+import geometry
+import logging
+logging.info('Starting logger for...') 
+logger = logging.getLogger(__name__)
 
 def smootherstep(edge0,edge1,x):
 	if (x >= edge1):
@@ -58,7 +61,7 @@ def getXCrossing(conic,y):
 		return [2, [(-b-rtdet)/(2*a),(-b+rtdet)/(2*a)]]
 
 def scaledMajorRadius(ellipse, target_radius):
-	toreturn = Ellipse.Ellipse(ellipse.centre,target_radius,
+	toreturn = geometry.Ellipse(ellipse.centre,target_radius,
 		target_radius*ellipse.minor_radius/ellipse.major_radius,ellipse.angle)
 	return toreturn
 
@@ -98,7 +101,7 @@ def angleDiffGoodness(theta1, psi1, theta2, psi2, sigma):
 
 def circleOnSphere(sphere, theta, psi, circle_radius):
 	radial = [1, theta, psi]
-	return Circle.Circle3D(sphere.centre + sphere.radius*np.asmatrix(radial), radial, circle_radius)
+	return geometry.Circle3D(sphere.centre + sphere.radius*np.asmatrix(radial), radial, circle_radius)
 
 #structure EllipsePointDistanceFunction
 
@@ -113,7 +116,7 @@ class EllipseDistCalculator:
 				r*np.cos(ellipse.angle)/ellipse.minor_radius]]).T #np is row major, not column major :P
 			self.rAt = self.rA*np.reshape(ellipse.centre,(2,1))
 		else:
-			print "ERROR: need ellipse input"
+			logger.error("need ellipse input")
 			self.rA = None
 			self.rAt = None
 
@@ -177,7 +180,7 @@ def EllipseGoodnessFunctionOperator(self,eye,theta,psi,pupil_radius,focal_length
 			ret -= psi
 
 	# now that everything should look good, calculate the actual goodness.
-	pupil_ellipse = Ellipse.Ellipse()
+	pupil_ellipse = geometry.Ellipse()
 	pupil_ellipse.initialize_conic(projection.project_sphere(pupil_circle,focal_length))
 	return ellipseGoodness(pupil_ellipse, mEye, band_width, step_epsilon)
 
@@ -192,9 +195,9 @@ class EllipseDistanceResidualFunction:
 	def operator(self,eye_param, pupil_param,e_array):
 		Const = None
 		eye_pos = np.matrix([eye_param[0],eye_param[1],eye_param[2]])
-		eye = Sphere.Sphere(eye_pos, eye_radius)
+		eye = geometry.Sphere(eye_pos, eye_radius)
 
-		pupil_ellipse = Ellipse.Ellipse()
+		pupil_ellipse = geometry.Ellipse()
 		temp = projection.project_sphere(circleOnSphere(eye, pupil_param[0],pupil_param[1],pupil_param[2]), focal_length)
 		pupil_ellipse.initialize_conic(temp)
 
@@ -272,8 +275,8 @@ if __name__ == '__main__':
 	#testing stuff
 	smootherstep(1,2,1.5)
 
-	ellipse = Ellipse.Ellipse((150.254,122.157),68.3431,33.9279,0.958216*scipy.pi)
+	ellipse = geometry.Ellipse((150.254,122.157),68.3431,33.9279,0.958216*scipy.pi)
 	ellipsedist = EllipseDistCalculator(ellipse)
 
-	sphere = Sphere.Sphere([0,0,0],10)
+	sphere = geometry.Sphere([0,0,0],10)
 	print circleOnSphere(sphere, 1,2,3)

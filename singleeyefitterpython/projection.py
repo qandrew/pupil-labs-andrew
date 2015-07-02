@@ -12,6 +12,9 @@ import scipy
 
 import geometry
 import solve
+import logging
+logging.info('Starting logger for...') 
+logger = logging.getLogger(__name__)
 
 def project_circle(circle,focal_length):
 	c = circle.centre
@@ -146,13 +149,13 @@ def unproject(ellipse,circle_radius,focal_length):
 		(b*c + c*a + a*b - f*f - g*g - h*h), 
 		-(a*b*c + 2 * f*g*h - a*f*f - b*g*g - c*h*h) )
 	if (lamb[0] < lamb[1]):
-		print "Lambda 0 > Lambda 1, die"
+		logger.error("Lambda 0 > Lambda 1, die")
 		return
 	if (lamb[1] <= 0):
-		print "Lambda 1 > 0, die"
+		logger.error("Lambda 1 > 0, die")
 		return
 	if (lamb[2] >= 0):
-		print "Lambda 2 < 0, die"
+		logger.error("Lambda 2 < 0, die")
 		return
 
 	#Calculate l,m,n of plane
@@ -211,7 +214,7 @@ def unproject(ellipse,circle_radius,focal_length):
 		T3 = np.zeros((3,3))
 		if (l == 0):
 			if (n == 1):
-				print "Warning: l == 0"
+				logger.error("Warning: l == 0")
 				break
 			T3 = np.matrix([[0,-1,0],
 				[1,0,0],

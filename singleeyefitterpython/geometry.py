@@ -8,6 +8,9 @@
 
 import numpy as np
 import scipy
+import logging
+logging.info('Starting logger for...') 
+logger = logging.getLogger(__name__)
 
 class Circle3D:
 	#originally from Circle.py, see older version on github for further details of the original file
@@ -53,7 +56,10 @@ class Conic:
 
 	def operator(self,x,y):
 		#this function returns the conic based on coordinates x and y
-		return A*x*x + B*x*y + C*y*y + D*x + E*y + F
+		if (x == None or y == None):
+			logger.error("Inputs x or y is none")
+			return
+		return self.A*x*x + self.B*x*y + self.C*y*y + self.D*x + self.E*y + self.F
 
 	def __str__(self):
 		return "Conic { " + str(self.A) + "x^2 + " + str(self.B) + 'xy + ' + str(self.C) + 'y^2 + ' + str(self.D) + 'x + ' + str(self.E) + 'y + ' + str(self.F) + " = 0 }"
@@ -306,3 +312,6 @@ class Sphere:
 if __name__ == '__main__':
 	#testing if modules here work correctly
 	print "yay testing"
+	huding = Ellipse((-141.07,72.6412),46.0443, 34.5685, 0.658744*scipy.pi)
+	hucon = Conic(huding)
+	hucon.operator(None, None)

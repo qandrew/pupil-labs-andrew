@@ -9,6 +9,9 @@
 import numpy as np
 import scipy
 import geometry
+import logging
+logging.info('Starting logger for...') 
+logger = logging.getLogger(__name__)
 
 def intersect_2D_lines(line1,line2):
 	#finds intersection of 2 lines in 2D. the original intersect() function
@@ -40,18 +43,18 @@ def intersect_2D_lines(line1,line2):
 			x3 = x4
 			if (x3 == x4):
 				if (y3 == y1):
-					print "Inputs are same lines, here is one of many points of intersection"
+					logger.info("Inputs are same lines, here is one of many points of intersection")
 					return np.matrix('%s;%s' % (x1,y1))
 				else:
-					print "Parallel Lines, no intersect"
+					logger.warning("Parallel Lines, no intersect")
 					return
 		if ((y3-y1)/(x3-x1) == slope):
 			#is the same line
-			print "Inputs are same lines, here is one of many points of intersection"
+			logger.info("Inputs are same lines, here is one of many points of intersection")
 			return np.matrix('%s;%s' % (x1,y1))
 		else:
 			#not the same line
-			print "Parallel Lines, no intersect"
+			logger.warning("Parallel Lines, no intersect")
 			return
 	else:
 		#there exists an intersection
@@ -128,7 +131,7 @@ def sphere_intersect(line,sphere):
 	# from wikipedia :)
 	vcvc_cc_rr = np.sq(np.dot(v,c) - np.dot(c,c) + np.sq(r))
 	if (vcvc_cc_rr < 0):
-		print "NO INTERSECTION between line and sphere"
+		logger.warning("NO INTERSECTION between line and sphere")
 		return
 	s1 = np.dot(v,c) - np.sqrt(vcvc_cc_rr)
 	s1 = np.dot(v,c) + np.sqrt(vcvc_cc_rr)
