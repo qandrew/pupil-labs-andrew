@@ -1,8 +1,8 @@
 """
 	Andrew Xia playing around with porting c++ code to python
-	I want to port solve.h into this python script here
+	This file was originally located in geometry/solve.py, now in the parent folder just as solve.py
 	HUDING
-	June 29 2015
+	Created July 2 2015
 
 	The inputs to the solve equation are tuples a,b,c
 

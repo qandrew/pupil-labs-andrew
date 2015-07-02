@@ -12,18 +12,13 @@
 import numpy as np
 import cv2
 import scipy
-from geometry import Ellipse
-from geometry import Sphere
-from geometry import Circle
-from geometry import projection
-from geometry import intersect
-import singleeyefitter
+
+import auxiliary_functions
+import geometry
+import projection
+import intersect
 
 #global functions
-def toEigen(point): pass
-def toPoint2f(point): pass
-def toPoint(point): pass
-
 def toRotatedRect(ellipse):
 	toreturn = cv2.RotatedRect(ellipse.centre,
 		cv2.Size2f(2*ellipse.major_radius),
@@ -32,20 +27,20 @@ def toRotatedRect(ellipse):
 	return toreturn
 
 def toEllipse(rotatedrect):
-	toreturn = Ellipse.Ellipse(rect.center,
+	#input is a cv2 rotated rect
+	toreturn = geometry.Ellipse(rect.center,
 		rect.size.width/2,
 		rect.size.height/2,
 		rect.angle*scipy.pi/180)
 	return toreturn
 
-class Ellipse_Observation: #was a structure in C
-	def __init__(self, image = None, ellipse = Ellipse.Ellipse(), inliers = []):
-		self.image = image #cv.Mat
-		self.ellipse = ellipse
-		self.inliers = inliers #containing cv2.Point2f
+def circleFromParams_eye(eye,params):
+	if (params.radius == None):
+		print "what the fuck, gimme params"
+		return geometry.Circle3D()
 
-	def __str__(self):
-		return "Observation: Image (file too big), {" +  str(self.ellipse) + "}, inliers (file too big). "
+	radial = auxiliary_functions.sph2cart(1, params.theta, params.psi)
+	return geometry.Circle3D(eye.centre + eye.radius*radial,radial, params.radius)
 
 class PupilParams: #was a structure in C
 	def __init__(self, theta = 0, psi = 0, radius = 0):
@@ -56,15 +51,15 @@ class PupilParams: #was a structure in C
 	def __str__(self):
 		return "PupilParams Class: Theta" + str(self.theta) + " psi " + str(self.psi) + " r " + str(self.radius)
 
-class Pupil:
-	def __init__(self, ellipse_Observation = Ellipse_Observation()):
-		self.ellipse_Observation = ellipse_Observation
-		self.circle = Circle.Circle3D()
+class Pupil: #data structure for a pupil
+	def __init__(self, ellipse = geometry.Ellipse()):
+		self.ellipse = ellipse
+		self.circle = geometry.Circle3D()
 		self.params = PupilParams()
 		self.init_valid = bool
 
 	def __str__(self):
-		return "Pupil Class: " + str(self.ellipse_Observation) + str(self.circle) + " " + str(self.params) + " init_valid: " + str(self.init_valid)
+		return "Pupil Class: " + str(self.ellipse) + str(self.circle) + " " + str(self.params) + " init_valid: " + str(self.init_valid)
 
 
 #the class
@@ -76,52 +71,24 @@ class EyeModelFitter():
 		self.region_band_width = region_band_width
 		self.region_step_epsilon = region_step_epsilon
 		self.region_scale = 1
-
+		# self.index = []
 		self.camera_centre = np.array([0,0,0])
-		self.eye = Sphere.Sphere()
-		self.pupil_ellipse_array = [] 
-		#originally pupils, vector containing the Ellipse_Observation class
-		#should be vector containing PUPIL class
+		self.eye = geometry.Sphere() #model of our eye
+		self.pupil_ellipse_array = [] #array containing elements in pupil class
 		self.model_version = 0
 
-		# self.index = []
-
-
-	def add_observation_by_ellipse(self,pupil_ellipse):
-		toadd = Pupil(Ellipse_Observation(None,pupil_ellipse,None))
+	def add_ellipse(self,pupil_ellipse):
+		toadd = Pupil(pupil_ellipse)
 		self.pupil_ellipse_array.append(toadd)
 
-	def add_observation_by_int(self, image, pupil_ellipse, n_pseudo_inliers = 0):
-		#add an observation by number of pseudo inliers
-		pupil_inliers = []
-		for i in xrange(n_pseudo_inliers):
-			p = singleeyefitter.pointAlongEllipse(pupil, i*2*scipy.pi/n_pseudo_inliers)
-			pupil_inliers.append([p[0],p[1]])
-		return self.add_observation_by_vector (image, pupil_ellipse, pupil_inliers)
-
-	def add_observation_by_vector(self,image,pupil_ellipse,pupil_inliers):
-		if (image.channels() == 1 and image.depth == CV_8U):
-			toadd = Pupil(Ellipse_Observation(image, pupil_ellipse, pupil_inliers))
-			self.pupil_ellipse_array.append(toadd)
-			return len(self.pupil_ellipse_array) -1
-		else:
-			print "ERROR: image channels != 1 or image depth != CV_8U, terminated"
-			return
-
-	def reset():
+	def reset(self):
 		self.pupil_ellipse_array = []
-		eye = Sphere.Sphere()
-		model_version += 1
+		eye = geometry.Sphere()
+		self.model_version += 1
 
 	def circleFromParams(self, params):
-		return self.circleFromParams_eye(self.eye,params)
-		
-	def circleFromParams_eye(self,eye,params):
-		if (params.radius == 0):
-			return Circle.Circle3D()
-
-		radial = singleeyefitter.sph2cart(1, params.theta, params.psi)
-		return Circle.Circle3D(eye.centre + eye.radius*radial,radial, params.radius)
+		print "hello"
+		return circleFromParams_eye(self.eye,params)
 
 	def unproject_observations(self,pupil_radius = 1, eye_z = 20, use_ransac = False): 
 		# default to false so I skip for loop
@@ -142,7 +109,7 @@ class EyeModelFitter():
 			# print pupil.ellipse_Observation.ellipse
 			# print pupil_radius
 			# print self.focal_length
-			unprojection_pair = projection.unproject(pupil.ellipse_Observation.ellipse, pupil_radius, self.focal_length)
+			unprojection_pair = projection.unproject(pupil.ellipse, pupil_radius, self.focal_length)
 
 			""" get projected circles and gaze vectors
 				Project the circle centers and gaze vectors down back onto the image plane.
@@ -163,7 +130,7 @@ class EyeModelFitter():
 			v_proj = v_proj/np.linalg.norm(v_proj) #normalizing
 
 			pupil_unprojection_pairs.append(unprojection_pair)
-			line = intersect.Line2D(c_proj, v_proj)
+			line = geometry.Line2D(c_proj, v_proj)
 			# print "hudong"
 			# print "c " + str(c.T)
 			# print "v " + str(v.T)
@@ -268,7 +235,7 @@ class EyeModelFitter():
 		params = [pupil.params.theta, pupil.params.psi, pupil.params.radius]
 		varz = [params, 0]
 
-		contrast_term = singleeyefitter.PupilContrastTerm(eye, focal_length*region_scale,
+		contrast_term = auxiliary_functions.PupilContrastTerm(eye, focal_length*region_scale,
 			cv2.resize(pupil.observation.image,region_scale), region_band_width, region_step_epsilon)
 		#contrast_val = contrast_term. 
 """
@@ -278,21 +245,24 @@ if __name__ == '__main__':
 	#testing stuff
 	huding = EyeModelFitter()
 
-	#test data
-	ellipse1 = Ellipse.Ellipse((-141.07,72.6412),46.0443, 34.5685, 0.658744*scipy.pi)
-	ellipse2 = Ellipse.Ellipse((-134.405,98.3423),45.7818, 36.7225, 0.623024*scipy.pi)
-	ellipse3 = Ellipse.Ellipse( (75.7523,68.8315),60.8489, 55.8412, 0.132388*scipy.pi)
-	ellipse4 = Ellipse.Ellipse((-76.9547,52.0801),51.8554, 44.3508, 0.753157*scipy.pi)
-	ellipse5 = Ellipse.Ellipse((-73.8259,5.54398),64.1682, 48.5875, 0.810757*scipy.pi)
-	ellipse6 = Ellipse.Ellipse((-62.2873,-60.9237),41.1463, 23.5819, 0.864127*scipy.pi)
+	#testing unproject_observation
+	ellipse1 = geometry.Ellipse((-141.07,72.6412),46.0443, 34.5685, 0.658744*scipy.pi)
+	ellipse2 = geometry.Ellipse((-134.405,98.3423),45.7818, 36.7225, 0.623024*scipy.pi)
+	ellipse3 = geometry.Ellipse( (75.7523,68.8315),60.8489, 55.8412, 0.132388*scipy.pi)
+	ellipse4 = geometry.Ellipse((-76.9547,52.0801),51.8554, 44.3508, 0.753157*scipy.pi)
+	ellipse5 = geometry.Ellipse((-73.8259,5.54398),64.1682, 48.5875, 0.810757*scipy.pi)
+	ellipse6 = geometry.Ellipse((-62.2873,-60.9237),41.1463, 23.5819, 0.864127*scipy.pi)
 
-	huding.add_observation_by_ellipse(ellipse1)
-	huding.add_observation_by_ellipse(ellipse2)
-	huding.add_observation_by_ellipse(ellipse3)
-	huding.add_observation_by_ellipse(ellipse4)
-	huding.add_observation_by_ellipse(ellipse5)
-	huding.add_observation_by_ellipse(ellipse6)
+	huding.add_ellipse(ellipse1)
+	huding.add_ellipse(ellipse2)
+	huding.add_ellipse(ellipse3)
+	huding.add_ellipse(ellipse4)
+	huding.add_ellipse(ellipse5)
+	huding.add_ellipse(ellipse6)
 
 	huding.unproject_observations()
 
-	#print huding.circleFromParams(PupilParams(1,1,10))
+	print huding.circleFromParams(PupilParams(1,1,10))
+
+	lol = huding.eye
+	print circleFromParams_eye(lol, PupilParams(1,1,12))

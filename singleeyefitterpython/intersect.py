@@ -1,54 +1,18 @@
 """
 	Andrew Xia playing around with porting c++ code to python
-	I want to port intersect.h into this python script here
-	June 25 2015
+	Moving the geometry/intersect.py to this file (see github for version history)
+	line2D and line3D, which originally were in intersect.py, are now in geometry.py
+	Created July 2 2015
 
 """
 
 import numpy as np
 import scipy
-
-class Line2D:
-	def __init__(self, origin = [0,0], direction = None):
-		self.origin = np.asarray(origin)
-		self.direction = [direction[0]/np.linalg.norm(direction),direction[1]/np.linalg.norm(direction)]
-		self.direction = np.asarray(self.direction)
-		#to be save, convert all to np arrays
-
-	def __str__(self):
-		return "Line { origin:" + str(self.origin) + " direction: " + str(self.direction) + " }"
-
-	# other functions from the eigen class that exist, but may not be used
-	def distance(self,point):
-		# the distance of a point p to its projection onto the line
-		pass
-	def intersection_hyperplane(self,hyperplane):
-		# the parameter value of intersection between this and given hyperplane
-		pass
-	def intersection_point(self, hyperplane):
-		# returns parameter value of intersection between this and given hyperplane
-		pass
-	def projection(self,point):
-		# returns projection of a point onto the line
-		pass
-	def pointAt(self,x):
-		# point at x along this line
-		pass
-
-class Line3D:
-	def __init__(self, origin = [0,0,0], direction = None):
-		self.origin = np.asarray(origin)
-		self.direction = [direction[0]/np.linalg.norm(direction),
-			direction[1]/np.linalg.norm(direction),
-			direction[2]/np.linalg.norm(direction)]
-		self.direction = np.asarray(origin)
-
-
-	def __str__(self):
-		return "Line { origin:" + str(self.origin) + " direction: " + str(self.direction) + " }"
+import geometry
 
 def intersect_2D_lines(line1,line2):
 	#finds intersection of 2 lines in 2D. the original intersect() function
+	#line1 and line2 should be geometry.line2D() class
 	x1 = line1.origin[0]
 	y1 = line1.origin[1]
 	x2 = line1.origin[0] + line1.direction[0]
@@ -97,11 +61,13 @@ def intersect_2D_lines(line1,line2):
 
 def nearest_intersect_3D_lines(line1, line2):
 	# just use the generic nearest intersection function
+		#line1 and line2 should be geometry.line3D() class
 	return nearest_intersect([line1, line2])
 
 def nearest_intersect_3D(lines):
 	#finds the learest intersection of many lines (which may not be a real intersection)
 	#the original nearest_intersect(const Range& lines) function
+	#each element in array lines should be geometry.line3D() class
 	A = np.zeros((3,3))
 	b = np.zeros((3,1))
 	Ivv = [] #vector of matrices
@@ -125,6 +91,7 @@ def nearest_intersect_3D(lines):
 def nearest_intersect_2D(lines):
 	#finds the learest intersection of many lines (which may not be a real intersection)
 	#the original nearest_intersect(const Range& lines) function
+	#each element in array lines should be geometry.line2D() class
 	A = np.zeros((2,2))
 	b = np.zeros((2,1))
 	Ivv = [] #vector of matrices
@@ -150,6 +117,7 @@ def nearest_intersect_2D(lines):
 
 def sphere_intersect(line,sphere):
 	#intersection between a line and a sphere, originally called intersect(line,sphere)
+	#line should be geometry.line3D() class, sphere is geometry.sphere() class
 	"""I have not tested if this function works correctly"""
 
 	v = line.direction
@@ -176,15 +144,15 @@ def sphere_intersect(line,sphere):
 if __name__ == '__main__':
 
 	#testing stuff
-	huding = Line2D([5,7],[10,10])
-	huding2 = Line2D([3,5],[-1,-1])
+	huding = geometry.Line2D([5,7],[10,10])
+	huding2 = geometry.Line2D([3,5],[-1,-1])
 	print huding
 	print intersect_2D_lines(huding, huding2)
 
 	#testing nearest_intersect_3D
-	# huding = Line3D([0.835233,3.67143,20], [-0.303085,-0.54173,-0.784008])
-	# huding2 = Line3D([0, 0, 0], [-0.0843631, 0.00459802, 0.996424])
-	# print nearest_intersect_3D([huding, huding2])
+	huding = geometry.Line3D([0.835233,3.67143,20], [-0.303085,-0.54173,-0.784008])
+	huding2 = geometry.Line3D([0, 0, 0], [-0.0843631, 0.00459802, 0.996424])
+	print nearest_intersect_3D([huding, huding2])
 
 	# huding = Line3D([ 0.,  0, 0], [ -0.427425,-0.293268,-0.855162])
 	# huding2 = Line3D([0, 0, 0], [ -0.150507,0.109365,0.982541])

@@ -10,11 +10,7 @@
 import numpy as np
 import scipy
 
-import Circle
-import Conic
-import Sphere
-import Ellipse
-import Conicoid
+import geometry
 import solve
 
 def project_circle(circle,focal_length):
@@ -92,7 +88,7 @@ def project_circle(circle,focal_length):
 	G = 2*(c2r2*n[2]*n[0] - cn*(n[2]*c[0] + n[0]*c[2]))
 	H = 2*(c2r2*n[0]*n[1] - cn*(n[0]*c[1] + n[1]*c[0]))
 
-	conic = Conic.Conic()
+	conic = geometry.Conic()
 	conic.A = ABC[0]
 	conic.B = H
 	conic.C = ABC[1]
@@ -102,7 +98,7 @@ def project_circle(circle,focal_length):
 	return conic
 
 def project_sphere(sphere,focal_length):
-	return Ellipse.Ellipse(
+	return geometry.Ellipse(
 			[focal_length * sphere.centre[0] / sphere.centre[2],focal_length * sphere.centre[1] / sphere.centre[2]], #ellipse centre
 			focal_length * sphere.radius / sphere.centre[2], #major
 			focal_length * sphere.radius / sphere.centre[2], #minor
@@ -115,15 +111,15 @@ def project_point(point,focal_length):
 	return [focal_length*np.array(point)[0]/point[2],focal_length*np.array(point)[1]/point[2]]
 
 def unproject(ellipse,circle_radius,focal_length):
-	circle = Circle.Circle3D()
+	circle = geometry.Circle3D()
 	Matrix3 = np.zeros((3,3))
 	RowArray3 = np.zeros((1,3))
 	Translation3 = np.zeros((1,3)) #see T2 for actual implementation
 
-	conic = Conic.Conic(ellipse)
+	conic = geometry.Conic(ellipse)
 	cam_centre_in_ellipse = np.array([[0],[0],[-focal_length]])
-	pupil_cone = Conicoid.Conicoid()
-	pupil_cone.initialize_conic(conic,cam_centre_in_ellipse) #this step is fine
+	pupil_cone = geometry.Conicoid(conic = conic, vertex = cam_centre_in_ellipse)
+	#pupil_cone.initialize_conic(conic,cam_centre_in_ellipse) #this step is fine
 
 	a = pupil_cone.A
 	b = pupil_cone.B
@@ -200,7 +196,7 @@ def unproject(ellipse,circle_radius,focal_length):
 	temp = -(u*li + v*mi + w*ni) / lamb
 	T2 = [[temp[0]],[temp[1]],[temp[2]]]
 
-	solutions = Circle.Circle3D()
+	solutions = geometry.Circle3D()
 	ls = [l, -l]
 
 	solutions = [0,0] #two solutions for the circles that we will return
@@ -263,35 +259,35 @@ def unproject(ellipse,circle_radius,focal_length):
 
 		centre = np.reshape(centre,3)
 
-		solutions[i] = Circle.Circle3D(centre,gaze,circle_radius)
+		solutions[i] = geometry.Circle3D(centre,gaze,circle_radius)
 
 	return solutions
 
 if __name__ == '__main__':
 
 	#testing uproject
-	ellipse = Ellipse.Ellipse((150.254,122.157),68.3431,33.9279,0.958216*scipy.pi)
+	ellipse = geometry.Ellipse((150.254,122.157),68.3431,33.9279,0.958216*scipy.pi)
 	huding = unproject(ellipse,1,1030.3) 
 	print huding[0]
 	#sol0: Circle { centre: (0.682255,0.533441,4.72456), normal: (-0.188279,-0.909715,-0.370094), radius: 1 }
 
 	print " "
 
-	ellipse = Ellipse.Ellipse((-152.295,157.418),46.7015,32.4274,0.00458883*scipy.pi)
+	ellipse = geometry.Ellipse((-152.295,157.418),46.7015,32.4274,0.00458883*scipy.pi)
 	huding = unproject(ellipse,1,1030.3) 
 	print huding[0] 
 	#sol0: Circle { centre: (-2.23168,2.29378,15.1334), normal: (0.124836,-0.81497,-0.565897), radius: 1 }
 
 	# testing project_circle
-	# circle = Circle.Circle3D([1.35664,-0.965954,9.33736],[0.530169,-0.460575,-0.711893],1)
+	circle = geometry.Circle3D([1.35664,-0.965954,9.33736],[0.530169,-0.460575,-0.711893],1)
+	print project_circle(circle,1030.3) #correct
+	# circle = geometry.Circle3D([-1.36026,0.415986,4.9436],[-0.701632,0.102242,-0.705166],1)
 	# print project_circle(circle,1030.3) #correct
-	# circle = Circle.Circle3D([-1.36026,0.415986,4.9436],[-0.701632,0.102242,-0.705166],1)
+	# circle = geometry.Circle3D((0.68941,0.58537,4.71737),(0.0464665,0.794044,-0.606082),1)
 	# print project_circle(circle,1030.3) #correct
-	# circle = Circle.Circle3D((0.68941,0.58537,4.71737),(0.0464665,0.794044,-0.606082),1)
+	# circle = geometry.Circle3D([-11.3327,11.8036,76.7857],[0.0843856,0.548524,-0.831865],5.07561)
 	# print project_circle(circle,1030.3) #correct
-	# circle = Circle.Circle3D([-11.3327,11.8036,76.7857],[0.0843856,0.548524,-0.831865],5.07561)
-	# print project_circle(circle,1030.3) #correct
-	# circle = Circle.Circle3D([-21.9309,6.70676,79.7034],[-0.798796,0.123788,-0.588729],16.1225)
+	# circle = geometry.Circle3D([-21.9309,6.70676,79.7034],[-0.798796,0.123788,-0.588729],16.1225)
 	# print project_circle(circle,1030.3) #correct
 
 	#testing project_point
@@ -299,7 +295,7 @@ if __name__ == '__main__':
 	print project_point(point,1030.3) #good
 
 	#testing project_sphere
-	# sphere = Sphere.Sphere(centre=[-12.3454,5.22129,86.7681],radius=12)
+	# sphere = geometry.Sphere(centre=[-12.3454,5.22129,86.7681],radius=12)
 	# print project_sphere(sphere,1030.3) #GOOD
-	# sphere = Sphere.Sphere(centre=(10.06,-6.20644,86.8967),radius=12)
-	# print project_sphere(sphere,1030.3) #GOOD
+	sphere = geometry.Sphere(centre=(10.06,-6.20644,86.8967),radius=12)
+	print project_sphere(sphere,1030.3) #GOOD
