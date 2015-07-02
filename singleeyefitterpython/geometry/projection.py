@@ -110,8 +110,8 @@ def project_sphere(sphere,focal_length):
 		)
 
 def project_point(point,focal_length):
-	print np.array(point)
-	print np.array(point).shape
+	# print np.array(point)
+	# print np.array(point).shape
 	return [focal_length*np.array(point)[0]/point[2],focal_length*np.array(point)[1]/point[2]]
 
 def unproject(ellipse,circle_radius,focal_length):
