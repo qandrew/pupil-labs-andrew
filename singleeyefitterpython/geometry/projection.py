@@ -145,10 +145,6 @@ def unproject(ellipse,circle_radius,focal_length):
 		matter, and it later eliminates the case of eq (30), where
 		lambda(2) > lambda(1)
 	"""
-
-	#where does this solve thing in the projection.h file come from???????
-
-	"""FIX HERE IT DOESNT WORK"""
 	lamb = solve.solve_four(1., 
 		-(a + b + c), 
 		(b*c + c*a + a*b - f*f - g*g - h*h), 
