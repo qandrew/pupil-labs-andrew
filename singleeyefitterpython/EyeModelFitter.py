@@ -17,6 +17,9 @@ import auxiliary_functions
 import geometry
 import projection
 import intersect
+import logging
+logging.info('Starting logger for...') 
+logger = logging.getLogger(__name__)
 
 #global functions
 def toRotatedRect(ellipse):
@@ -36,7 +39,7 @@ def toEllipse(rotatedrect):
 
 def circleFromParams_eye(eye,params):
 	if (params.radius == None):
-		print "what the fuck, gimme params"
+		logger.warning("dafaq, gimme params pls")
 		return geometry.Circle3D()
 
 	radial = auxiliary_functions.sph2cart(1, params.theta, params.psi)
@@ -95,7 +98,7 @@ class EyeModelFitter():
 		# this function for every ellipse from the image creates corresponding circles 
 		# unprojected to the pupil sphere model
 		if (len(self.pupil_ellipse_array) < 2):
-			print "RUNTIME ERROR: Need at least two observations"
+			logger.error("Need at least two observations")
 			return
 		pupil_unprojection_pairs = [] #each element should be [Circle.Cirle3D, Circle.Circle3D]
 		pupil_gazelines_proj = [] #it is a vector<line> !!
