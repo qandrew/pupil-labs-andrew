@@ -3,7 +3,7 @@
 	I want to port singgleeyefitter.cpp and singgleeyefitter.h into this python script here
 	June 25 2015
 
-	EDIT June 30 2015: This file will contain only the class EyeModelFitter, that was 
+	EDIT June 30 2015: This file will contain only the class EyeModelFitter renamed spherefitter, that was 
 	originally in both singleeyefitter.h and singleeyefitter.cpp.
 
 """
@@ -59,14 +59,14 @@ class Pupil: #data structure for a pupil
 		self.ellipse = ellipse
 		self.circle = geometry.Circle3D()
 		self.params = PupilParams()
-		self.init_valid = bool
+		self.init_valid = False
 
 	def __str__(self):
 		return "Pupil Class: " + str(self.ellipse) + str(self.circle) + " " + str(self.params) + " init_valid: " + str(self.init_valid)
 
 
 #the class
-class EyeModelFitter():
+class Sphere_Fitter():
 
 	def __init__(self, focal_length = 879.193, region_band_width = 5, region_step_epsilon = 0.5):
 		#initialize based on what was done in singleeyefitter.cpp
@@ -80,9 +80,9 @@ class EyeModelFitter():
 		self.pupil_ellipse_array = [] #array containing elements in pupil class
 		self.model_version = 0
 
-	def add_ellipse(self,pupil_ellipse):
-		toadd = Pupil(pupil_ellipse)
-		self.pupil_ellipse_array.append(toadd)
+	def add_observation(self,ellipse):
+		#ellipse is the ellipse of pupil in camera image
+		self.pupil_ellipse_array.append(Pupil(ellipse))
 
 	def reset(self):
 		self.pupil_ellipse_array = []
@@ -90,11 +90,12 @@ class EyeModelFitter():
 		self.model_version += 1
 
 	def circleFromParams(self, params):
-		print "hello"
+		# currently badly written
+		# params = angles + diameter (theta, psi, radius)
 		return circleFromParams_eye(self.eye,params)
 
-	def unproject_observations(self,pupil_radius = 1, eye_z = 20, use_ransac = False): 
-		# default to false so I skip for loop
+	def unproject_observations(self,pupil_radius = 1, eye_z = 20): 
+		# ransac default to false so I skip for loop (haven't implemented it yet)
 		# this function for every ellipse from the image creates corresponding circles 
 		# unprojected to the pupil sphere model
 		if (len(self.pupil_ellipse_array) < 2):
@@ -186,7 +187,7 @@ class EyeModelFitter():
 			# arbitrarily pick first circle
 			for i in xrange(len(self.pupil_ellipse_array)):
 				pupil_pair = pupil_unprojection_pairs[i]
-				self.pupil_ellipse_array[i].circle = pupil_pair[0]
+				self.pupil_ellipse_yearray[i].circle = pupil_pair[0]
 
 		self.model_version += 1
 		print self.eye
@@ -246,12 +247,12 @@ class EyeModelFitter():
 if __name__ == '__main__':
 
 	#testing stuff
-	huding = EyeModelFitter()
+	huding = Sphere_Fitter()
 
 	#testing unproject_observation
 	ellipse1 = geometry.Ellipse((-141.07,72.6412),46.0443, 34.5685, 0.658744*scipy.pi)
 	ellipse2 = geometry.Ellipse((-134.405,98.3423),45.7818, 36.7225, 0.623024*scipy.pi)
-	ellipse3 = geometry.Ellipse( (75.7523,68.8315),60.8489, 55.8412, 0.132388*scipy.pi)
+	ellipse3 = geometry.Ellipse((75.7523,68.8315),60.8489, 55.8412, 0.132388*scipy.pi)
 	ellipse4 = geometry.Ellipse((-76.9547,52.0801),51.8554, 44.3508, 0.753157*scipy.pi)
 	ellipse5 = geometry.Ellipse((-73.8259,5.54398),64.1682, 48.5875, 0.810757*scipy.pi)
 	ellipse6 = geometry.Ellipse((-62.2873,-60.9237),41.1463, 23.5819, 0.864127*scipy.pi)
@@ -264,8 +265,9 @@ if __name__ == '__main__':
 	huding.add_ellipse(ellipse6)
 
 	huding.unproject_observations()
+	print huding.eye
 
-	print huding.circleFromParams(PupilParams(1,1,10))
+	print huding.circleFromParams(PupilParams(1,1,50))
 
 	lol = huding.eye
 	print circleFromParams_eye(lol, PupilParams(1,1,12))
