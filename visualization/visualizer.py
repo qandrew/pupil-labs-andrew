@@ -79,6 +79,8 @@ class Visualizer: #trying to make this the main class
 
 		glColor3f(0.0, 0.0, 1.0)                           # set color to blue
 		self.draw_rect(10, 10, 200, 100)                        # rect
+		glutSolidSphere(1.0,20,20)
+
 
 		glutSwapBuffers()                                  # important for double buffering
 
