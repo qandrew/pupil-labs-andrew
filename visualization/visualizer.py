@@ -5,108 +5,240 @@
 	July 6 2015
 
 """
-
+import logging
+from glfw import *
 from OpenGL.GL import *
 from OpenGL.GLUT import *
-from OpenGL.GLU import *
 
-window = 0                                             # glut window number
-width, height = 500, 400                               # window size
+# create logger for the context of this function
+logger = logging.getLogger(__name__)
+from pyglui import ui
 
-############################### THE DUMB WAY OF NOT USING A CLASS ################################
-def init():
-	window = 0                                             # glut window number
-	width, height = 500, 400                               # window size   
-	# initialization
-	glutInit()                                             # initialize glut
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
-	glutInitWindowSize(width, height)                      # set window size
-	glutInitWindowPosition(2000, 0)                        # set window position
-	window = glutCreateWindow("noobtuts.com")              # create window with title
-	glutDisplayFunc(draw)                                  # set draw function callback
-	glutIdleFunc(draw)                                     # draw all the time
-	glutMainLoop()                                         # start everything
+from pyglui.cygl.utils import init
+from pyglui.cygl.utils import RGBA
+from pyglui.cygl.utils import *
+from pyglui.cygl import utils as glutils
+from pyglui.pyfontstash import fontstash as fs
+from trackball import Trackball
 
-def draw():                                            # ondraw is called all the time
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) # clear the screen
-    glLoadIdentity()                                   # reset position
-    refresh2d(width, height)
-        
-    glColor3f(0.0, 0.0, 1.0)                           # set color to blue
-    draw_rect(10, 10, 200, 100)                        # rect at (10, 10) with width 200, height 100
-    
-    glutSwapBuffers()   
 
-def refresh2d(width, height):
-    glViewport(0, 0, width, height)
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    glOrtho(0.0, width, 0.0, height, 0.0, 1.0)
-    glMatrixMode (GL_MODELVIEW)
-    glLoadIdentity()
+width, height = (1280,720)
 
-def draw_rect(x, y, width, height):
-    glBegin(GL_QUADS)                                  # start drawing a rectangle
-    glVertex2f(x, y)                                   # bottom left point
-    glVertex2f(x + width, y)                           # bottom right point
-    glVertex2f(x + width, y + height)                  # top right point
-    glVertex2f(x, y + height)                          # top left point
-    glEnd()    
+import numpy as np
+import scipy
+import geometry #how do I find this folder?
+import cv2
 
-################### ABOVE IS CODE THAT WORKS BUT IS NOT WRITTEN WELL #############################
-
-class Visualizer: #trying to make this the main class
-
-	def __init__(self, name = "unnamed", width = 400, height = 500):
+class Visualizer():
+	def __init__(self,name = "unnamed"):
 		self.name = name
-		self.width = width
-		self.height = height
+		self.sphere = geometry.Sphere()
+		self.ellipses = [] #collection of ellipses to display
+		self.projected_lines = [] #collection of projected lines to display
+		self.frame = None #video frame from eye
+		self._window = None
+		self.input = None
+		self.trackball = None
 
-	def run(self):
-		glutInit()                                             # initialize glut
-		glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
-		glutInitWindowSize(self.width, self.height)                      # set window size
-		glutInitWindowPosition(2000, 0)                           # set window position
-		window = glutCreateWindow(self.name)              # create window with title
-		glutDisplayFunc(self.draw())                                  # set draw function callback
-		glutIdleFunc(self.draw())                                     # draw all the time
-		glutMainLoop()                                         # start everything
+		self.window_should_close = False
 
-	def draw(self):
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) # clear the screen
-		glLoadIdentity()                                   # reset position
-		self.refresh2d(width,height)
+		self.video_frame = (np.linspace(0,1,num=(400*400*4))*255).astype(np.uint8).reshape((400,400,4)) #the randomized image
+		self.test_sphere = geometry.Sphere([0,5,0],1)
+		self.test_ellipse = geometry.Ellipse((0,3),5,3,0)
 
-		glColor3f(0.0, 0.0, 1.0)                           # set color to blue
-		self.draw_rect(10, 10, 200, 100)                        # rect
-		glutSolidSphere(1.0,20,20)
+	############## DRAWING FUNCTIONS ##############################
 
+	def draw_coordinate_system(self,l=1):
+		# Draw x-axis line. RED
+		glColor3f( 1, 0, 0 )
+		glBegin( GL_LINES )
+		glVertex3f( 0, 0, 0 )
+		glVertex3f( l, 0, 0 )
+		glEnd( )
 
-		glutSwapBuffers()                                  # important for double buffering
+		# Draw y-axis line. GREEN. #not working... why? 
+		glColor3f( 0, 1, 0 )
+		glBegin( GL_LINES )
+		glVertex3f( 0, 0, 0 )
+		glVertex3f( 0, l, 0 )
+		glEnd( )
 
-	def draw_rect(self,x,y,width,height):
-		#draws a rectangle.
-		glBegin(GL_QUADS)                                  # start drawing a rectangle
-		glVertex2f(x, y)                                   # bottom left point
-		glVertex2f(x + width, y)                           # bottom right point
-		glVertex2f(x + width, y + height)                  # top right point
-		glVertex2f(x, y + height)                          # top left point
-		glEnd()  
+		# Draw z-axis line. BLUE
+		glColor3f( 0, 0,1 )
+		glBegin( GL_LINES )
+		glVertex3f( 0, 0, 0 )
+		glVertex3f( 0, 0, l )
+		glEnd( )
 
-	def refresh2d(self,width, height):
-		glViewport(0, 0, width, height)
+	def draw_sphere(self,sphere):
+		# this function draws the location of the eye sphere
+		glPushMatrix()
+		glColor3f(0.0, 0.0, 1.0)  
+		glTranslate(sphere.center[0], sphere.center[1], sphere.center[2])
+		glutWireSphere(sphere.radius,20,20)
+		glPopMatrix()
+
+	def draw_ellipse(self,ellipse):
+		glPushMatrix()  
+		glTranslate(ellipse.center[0], ellipse.center[1], 0)
+		glBegin(GL_LINE_LOOP)
+		for i in xrange(360):
+			rad = i*2*scipy.pi/360.
+			glVertex2f(np.cos(rad)*ellipse.major_radius,np.sin(rad)*ellipse.minor_radius)
+		glEnd()
+		glPopMatrix()
+
+	def draw_projected_line(self,line):
+		#draw a line from projected sphere center to the ellipse on frame.
+		""" TO BE IMPLEMENTED """
+		pass
+
+	def draw_video_screen(self,frame):
+		glPushMatrix()
+		tex_id = create_named_texture(frame.shape)
+		update_named_texture(tex_id,frame) #since image doesn't change, do not need to put in while loop
+		draw_named_texture(tex_id)
+		glPopMatrix()
+
+	########## Setup functions I don't really understand ############
+
+	def basic_gl_setup(self):
+		glEnable(GL_POINT_SPRITE )
+		glEnable(GL_VERTEX_PROGRAM_POINT_SIZE) # overwrite pointsize
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+		glEnable(GL_BLEND)
+		glClearColor(.8,.8,.8,1.)
+		glEnable(GL_LINE_SMOOTH)
+		# glEnable(GL_POINT_SMOOTH)
+		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
+		glEnable(GL_LINE_SMOOTH)
+		glEnable(GL_POLYGON_SMOOTH)
+		glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST)
+
+	def adjust_gl_view(self,w,h):
+		"""
+		adjust view onto our scene.
+		"""
+
+		glViewport(0, 0, w, h)
 		glMatrixMode(GL_PROJECTION)
 		glLoadIdentity()
-		glOrtho(0.0, width, 0.0, height, 0.0, 1.0)
-		glMatrixMode (GL_MODELVIEW)
+		glOrtho(0, w, h, 0, -1, 1)
+		glMatrixMode(GL_MODELVIEW)
 		glLoadIdentity()
 
+	def clear_gl_screen(self):
+		glClearColor(.9,.9,0.9,1.)
+		glClear(GL_COLOR_BUFFER_BIT)
+
+	########### Open, update, close #####################
+
+	def open_window(self):
+		if not self._window:
+			self.input = {'down':False, 'mouse':(0,0)}
+			self.trackball = Trackball()
+			# get glfw started
+			glfwInit()
+			self._window = glfwCreateWindow(width, height, self.name, None, None)
+			glfwMakeContextCurrent(self._window)
+
+			if not self._window:
+				exit()
+
+			glfwSetWindowPos(self._window,2000,0)
+			# Register callbacks window
+			glfwSetFramebufferSizeCallback(self._window,self.on_resize)
+			glfwSetWindowIconifyCallback(self._window,self.on_iconify)
+			glfwSetKeyCallback(self._window,self.on_key)
+			glfwSetCharCallback(self._window,self.on_char)
+			glfwSetMouseButtonCallback(self._window,self.on_button)
+			glfwSetCursorPosCallback(self._window,self.on_pos)
+			glfwSetScrollCallback(self._window,self.on_scroll)
+			glfwSetWindowCloseCallback(self._window,self.on_close)
+
+			init()
+			glutInit()
+			self.basic_gl_setup()
+
+			self.gui = ui.UI()
+			self.on_resize(self._window,*glfwGetFramebufferSize(self._window))
+
+	def update_window(self):
+		if self.window_should_close:
+			self.close_window()
+		if self._window != None:
+			self.clear_gl_screen()
+
+			self.trackball.push()
+
+			#glutils.draw_polyline3d([(0,0,2),(1,1,2)],color=RGBA(0.4,0.5,0.3,0.5))
+			self.draw_sphere(self.test_sphere)
+			self.draw_ellipse(self.test_ellipse)
+			self.draw_video_screen(self.video_frame)
+			self.draw_coordinate_system(20)
+
+			self.trackball.pop()
+			glfwSwapBuffers(self._window)
+			glfwPollEvents()
+			return True
+
+	def close_window(self):
+		glfwDestroyWindow(self._window)
+		glfwTerminate()
+		self._window = None
+		logger.debug("Process done")
+
+	############ window callbacks #################
+	def on_resize(self,window,w, h):
+		h = max(h,1)
+		w = max(w,1)
+		self.trackball.set_window_size(w,h)
+
+		active_window = glfwGetCurrentContext()
+		glfwMakeContextCurrent(window)
+		self.adjust_gl_view(w,h)
+		glfwMakeContextCurrent(active_window)
+
+	def on_iconify(self,window,x,y): pass
+
+	def on_key(self,window, key, scancode, action, mods):
+		self.gui.update_key(key,scancode,action,mods)
+
+	def on_char(window,char):
+		self.gui.update_char(char)
+
+	def on_button(self,window,button, action, mods):
+		self.gui.update_button(button,action,mods)
+		if action == GLFW_PRESS:
+			self.input['down'] = True
+			self.input['mouse'] = glfwGetCursorPos(window)
+		if action == GLFW_RELEASE:
+			self.input['down'] = False
+
+		# pos = normalize(pos,glfwGetWindowSize(window))
+		# pos = denormalize(pos,(frame.img.shape[1],frame.img.shape[0]) ) # Position in img pixels
+
+	def on_pos(self,window,x, y):
+		hdpi_factor = float(glfwGetFramebufferSize(window)[0]/glfwGetWindowSize(window)[0])
+		x,y = x*hdpi_factor,y*hdpi_factor
+		self.gui.update_mouse(x,y)
+		if self.input['down']:
+			old_x,old_y = self.input['mouse']
+			self.trackball.drag_to(x-old_x,y-old_y)
+			self.input['mouse'] = x,y
+
+	def on_scroll(self,window,x,y):
+		self.gui.update_scroll(x,y)
+		self.trackball.zoom_to(y)
+
+	def on_close(self,window=None):
+		self.window_should_close = True
+
 if __name__ == '__main__':
-	print "yay local file"
-
-	#the dumb way works.
-	init()
-
-	#Testing Visualizer class
-	huding = Visualizer("huding",400,500)
-	#huding.run()
+ 	huding = Visualizer("huding")
+ 	huding.open_window()
+ 	a = 0
+ 	while huding.update_window():
+ 		a += 1
+ 	huding.close_window()
+ 	print a
