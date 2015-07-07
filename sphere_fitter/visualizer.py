@@ -30,7 +30,7 @@ import geometry #how do I find this folder?
 import cv2
 
 class Visualizer():
-	def __init__(self,name = "unnamed"):
+	def __init__(self,name = "unnamed", run_independently = False):
 		self.name = name
 		self.sphere = geometry.Sphere()
 		self.ellipses = [] #collection of ellipses to display
@@ -39,6 +39,7 @@ class Visualizer():
 		self._window = None
 		self.input = None
 		self.trackball = None
+		self.run_independently = run_independently
 
 		self.window_should_close = False
 
@@ -50,17 +51,11 @@ class Visualizer():
 
 	def draw_coordinate_system(self,l=1):
 		# Draw x-axis line. RED
+		glLineWidth(2)
 		glColor3f( 1, 0, 0 )
 		glBegin( GL_LINES )
 		glVertex3f( 0, 0, 0 )
 		glVertex3f( l, 0, 0 )
-		glEnd( )
-
-		# Draw y-axis line. GREEN. #not working... why? 
-		glColor3f( 0, 1, 0 )
-		glBegin( GL_LINES )
-		glVertex3f( 0, 0, 0 )
-		glVertex3f( 0, l, 0 )
 		glEnd( )
 
 		# Draw z-axis line. BLUE
@@ -68,6 +63,13 @@ class Visualizer():
 		glBegin( GL_LINES )
 		glVertex3f( 0, 0, 0 )
 		glVertex3f( 0, 0, l )
+		glEnd( )
+
+		# Draw y-axis line. GREEN. #not working... why? 
+		glColor3f( 0, 1, 0 )
+		glBegin( GL_LINES )
+		glVertex3f( 0, 0, 0 )
+		glVertex3f( 0, l, 0 )
 		glEnd( )
 
 	def draw_sphere(self,sphere):
@@ -137,9 +139,12 @@ class Visualizer():
 		if not self._window:
 			self.input = {'down':False, 'mouse':(0,0)}
 			self.trackball = Trackball()
+
 			# get glfw started
-			glfwInit()
-			self._window = glfwCreateWindow(width, height, self.name, None, None)
+			if self.run_independently:
+				glfwInit()
+			window = glfwGetCurrentContext()					
+			self._window = glfwCreateWindow(width, height, self.name, None, window)
 			glfwMakeContextCurrent(self._window)
 
 			if not self._window:
@@ -156,23 +161,26 @@ class Visualizer():
 			glfwSetScrollCallback(self._window,self.on_scroll)
 			glfwSetWindowCloseCallback(self._window,self.on_close)
 
-			init()
+			# get glfw started
+			if self.run_independently:
+				init()
+
 			glutInit()
 			self.basic_gl_setup()
 
-			self.gui = ui.UI()
+			# self.gui = ui.UI()
 			self.on_resize(self._window,*glfwGetFramebufferSize(self._window))
 
 	def update_window(self):
 		if self.window_should_close:
 			self.close_window()
 		if self._window != None:
+			glfwMakeContextCurrent(self._window)
 			self.clear_gl_screen()
 
 			self.trackball.push()
 
-			#glutils.draw_polyline3d([(0,0,2),(1,1,2)],color=RGBA(0.4,0.5,0.3,0.5))
-			self.draw_sphere(self.test_sphere)
+			self.draw_sphere(self.test_sphere) #draw the 
 			self.draw_ellipse(self.test_ellipse)
 			self.draw_video_screen(self.video_frame)
 			self.draw_coordinate_system(20)
@@ -185,7 +193,8 @@ class Visualizer():
 	def close_window(self):
 		if self.window_should_close == True:
 			glfwDestroyWindow(self._window)
-			glfwTerminate()
+			if self.run_independently:
+				glfwTerminate()
 			self._window = None
 			self.window_should_close = False
 			logger.debug("Process done")
@@ -203,14 +212,14 @@ class Visualizer():
 
 	def on_iconify(self,window,x,y): pass
 
-	def on_key(self,window, key, scancode, action, mods):
-		self.gui.update_key(key,scancode,action,mods)
+	def on_key(self,window, key, scancode, action, mods): pass
+		#self.gui.update_key(key,scancode,action,mods)
 
-	def on_char(window,char):
-		self.gui.update_char(char)
+	def on_char(window,char): pass
+		# self.gui.update_char(char)
 
 	def on_button(self,window,button, action, mods):
-		self.gui.update_button(button,action,mods)
+		# self.gui.update_button(button,action,mods)
 		if action == GLFW_PRESS:
 			self.input['down'] = True
 			self.input['mouse'] = glfwGetCursorPos(window)
@@ -223,21 +232,21 @@ class Visualizer():
 	def on_pos(self,window,x, y):
 		hdpi_factor = float(glfwGetFramebufferSize(window)[0]/glfwGetWindowSize(window)[0])
 		x,y = x*hdpi_factor,y*hdpi_factor
-		self.gui.update_mouse(x,y)
+		# self.gui.update_mouse(x,y)
 		if self.input['down']:
 			old_x,old_y = self.input['mouse']
 			self.trackball.drag_to(x-old_x,y-old_y)
 			self.input['mouse'] = x,y
 
 	def on_scroll(self,window,x,y):
-		self.gui.update_scroll(x,y)
+		# self.gui.update_scroll(x,y)
 		self.trackball.zoom_to(y)
 
 	def on_close(self,window=None):
 		self.window_should_close = True
 
 if __name__ == '__main__':
- 	huding = Visualizer("huding")
+ 	huding = Visualizer("huding", run_independently = True)
  	huding.open_window()
  	a = 0
  	while huding.update_window():

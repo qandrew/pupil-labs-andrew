@@ -287,12 +287,12 @@ class Line2D:
 		pass
 
 class Line3D:
-	def __init__(self, origin = [0,0,0], direction = [0,0,0]):
+	def __init__(self, origin = [0,0,0], direction = None):
 		self.origin = np.asarray(origin)
 		self.direction = [direction[0]/np.linalg.norm(direction),
 			direction[1]/np.linalg.norm(direction),
 			direction[2]/np.linalg.norm(direction)]
-		self.direction = np.asarray(direction)
+		self.direction = np.asarray(origin)
 
 
 	def __str__(self):

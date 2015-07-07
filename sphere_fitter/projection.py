@@ -17,7 +17,7 @@ logging.info('Starting logger for...')
 logger = logging.getLogger(__name__)
 
 def project_circle(circle,focal_length):
-	c = circle.centre
+	c = circle.center
 	n = circle.normal
 	r = circle.radius
 	#f is the focal length
@@ -29,7 +29,7 @@ def project_circle(circle,focal_length):
 			|p - c|^2 = r^2 where (p-c).n = 0 (i.e. on the circle plane)
 		
 		A cone is basically concentric circles, with center on the line c->v.
-		For any point p, the corresponding circle centre c' is the intersection
+		For any point p, the corresponding circle center c' is the intersection
 		of the line c->v and the plane through p normal to n. So,
 		
 			d = ((p - v).n)/(c.n)
@@ -102,9 +102,9 @@ def project_circle(circle,focal_length):
 
 def project_sphere(sphere,focal_length):
 	return geometry.Ellipse(
-			[focal_length * sphere.centre[0] / sphere.centre[2],focal_length * sphere.centre[1] / sphere.centre[2]], #ellipse centre
-			focal_length * sphere.radius / sphere.centre[2], #major
-			focal_length * sphere.radius / sphere.centre[2], #minor
+			[focal_length * sphere.center[0] / sphere.center[2],focal_length * sphere.center[1] / sphere.center[2]], #ellipse center
+			focal_length * sphere.radius / sphere.center[2], #major
+			focal_length * sphere.radius / sphere.center[2], #minor
 			0 #angle
 		)
 
@@ -120,9 +120,9 @@ def unproject(ellipse,circle_radius,focal_length):
 	Translation3 = np.zeros((1,3)) #see T2 for actual implementation
 
 	conic = geometry.Conic(ellipse)
-	cam_centre_in_ellipse = np.array([[0],[0],[-focal_length]])
-	pupil_cone = geometry.Conicoid(conic = conic, vertex = cam_centre_in_ellipse)
-	#pupil_cone.initialize_conic(conic,cam_centre_in_ellipse) #this step is fine
+	cam_center_in_ellipse = np.array([[0],[0],[-focal_length]])
+	pupil_cone = geometry.Conicoid(conic = conic, vertex = cam_center_in_ellipse)
+	#pupil_cone.initialize_conic(conic,cam_center_in_ellipse) #this step is fine
 
 	a = pupil_cone.A
 	b = pupil_cone.B
@@ -238,31 +238,33 @@ def unproject(ellipse,circle_radius,focal_length):
 		D = np.dot(lamb,T33)
 
 		# Safaee-Rad 1992 eq 41
-		centre_in_Xprime = np.zeros((3,1))
-		centre_in_Xprime[2] = A*circle_radius/ np.sqrt(np.square(B) + np.square(C) - A*D)
-		centre_in_Xprime[0] = -B / A * centre_in_Xprime[2]
-		centre_in_Xprime[1] = -C / A * centre_in_Xprime[2]
+		center_in_Xprime = np.zeros((3,1))
+		center_in_Xprime[2] = A*circle_radius/ np.sqrt(np.square(B) + np.square(C) - A*D)
+		center_in_Xprime[0] = -B / A * center_in_Xprime[2]
+		center_in_Xprime[1] = -C / A * center_in_Xprime[2]
 
 		# Safaee-Rad 1992 eq 34
 		T0 = [[0],[0],[focal_length]]
 
 		# Safaee-Rad 1992 eq 42 using eq 35
-		#centre = T0*T1*T2*
-		centre = T0+T1*(T2+T3*centre_in_Xprime)
+		#center = T0*T1*T2*
+		center = T0+T1*(T2+T3*center_in_Xprime)
 
-		if (centre[2] < 0):
-			centre_in_Xprime = -centre_in_Xprime
-			centre = T0+T1*(T2+T3*centre_in_Xprime) #make sure z is positive
+		if (center[2] < 0):
+			center_in_Xprime = -center_in_Xprime
+			center = T0+T1*(T2+T3*center_in_Xprime) #make sure z is positive
 
 		gaze = np.reshape(gaze,(3,))
 
-		if (np.dot(gaze,centre) > 0):
+		if (np.dot(gaze,center) > 0):
 			gaze = -gaze
 		gaze = gaze/np.linalg.norm(gaze) #normalizing
+		gaze = np.array([gaze[0,0],gaze[0,1],gaze[0,2]]) #making it 3 instead of 3x1
 
-		centre = np.reshape(centre,3)
+		center = np.reshape(center,3)
+		center = np.array([center[0,0],center[0,1],center[0,2]]) #making it 3 instead of 3x1
 
-		solutions[i] = geometry.Circle3D(centre,gaze,circle_radius)
+		solutions[i] = geometry.Circle3D(center,gaze,circle_radius)
 
 	return solutions
 
@@ -272,18 +274,18 @@ if __name__ == '__main__':
 	ellipse = geometry.Ellipse((150.254,122.157),68.3431,33.9279,0.958216*scipy.pi)
 	huding = unproject(ellipse,1,1030.3) 
 	print huding[0]
-	#sol0: Circle { centre: (0.682255,0.533441,4.72456), normal: (-0.188279,-0.909715,-0.370094), radius: 1 }
+	#sol0: Circle { center: (0.682255,0.533441,4.72456), normal: (-0.188279,-0.909715,-0.370094), radius: 1 }
 
 	print " "
 
-	ellipse = geometry.Ellipse((-152.295,157.418),46.7015,32.4274,0.00458883*scipy.pi)
-	huding = unproject(ellipse,1,1030.3) 
-	print huding[0] 
-	#sol0: Circle { centre: (-2.23168,2.29378,15.1334), normal: (0.124836,-0.81497,-0.565897), radius: 1 }
+	# ellipse = geometry.Ellipse((-152.295,157.418),46.7015,32.4274,0.00458883*scipy.pi)
+	# huding = unproject(ellipse,1,1030.3) 
+	# print huding[0] 
+	#sol0: Circle { center: (-2.23168,2.29378,15.1334), normal: (0.124836,-0.81497,-0.565897), radius: 1 }
 
 	# testing project_circle
-	circle = geometry.Circle3D([1.35664,-0.965954,9.33736],[0.530169,-0.460575,-0.711893],1)
-	print project_circle(circle,1030.3) #correct
+	# circle = geometry.Circle3D([1.35664,-0.965954,9.33736],[0.530169,-0.460575,-0.711893],1)
+	# print project_circle(circle,1030.3) #correct
 	# circle = geometry.Circle3D([-1.36026,0.415986,4.9436],[-0.701632,0.102242,-0.705166],1)
 	# print project_circle(circle,1030.3) #correct
 	# circle = geometry.Circle3D((0.68941,0.58537,4.71737),(0.0464665,0.794044,-0.606082),1)
@@ -294,11 +296,11 @@ if __name__ == '__main__':
 	# print project_circle(circle,1030.3) #correct
 
 	#testing project_point
-	point = [0.493976,-0.376274,4.35446]
-	print project_point(point,1030.3) #good
+	# point = [0.493976,-0.376274,4.35446]
+	# print project_point(point,1030.3) #good
 
 	#testing project_sphere
-	# sphere = geometry.Sphere(centre=[-12.3454,5.22129,86.7681],radius=12)
+	# sphere = geometry.Sphere(center=[-12.3454,5.22129,86.7681],radius=12)
 	# print project_sphere(sphere,1030.3) #GOOD
-	sphere = geometry.Sphere(centre=(10.06,-6.20644,86.8967),radius=12)
-	print project_sphere(sphere,1030.3) #GOOD
+	# sphere = geometry.Sphere(center=(10.06,-6.20644,86.8967),radius=12)
+	# print project_sphere(sphere,1030.3) #GOOD

@@ -62,11 +62,6 @@ def intersect_2D_lines(line1,line2):
 		py = ((x1*y2 - y1*x2)*(y3-y4) - (y1-y2)*(x3*x4 - y3*x4))/denom
 		return np.matrix('%s;%s' % (px,py))
 
-def nearest_intersect_3D_lines(line1, line2):
-	# just use the generic nearest intersection function
-		#line1 and line2 should be geometry.line3D() class
-	return nearest_intersect([line1, line2])
-
 def nearest_intersect_3D(lines):
 	#finds the learest intersection of many lines (which may not be a real intersection)
 	#the original nearest_intersect(const Range& lines) function
@@ -88,8 +83,9 @@ def nearest_intersect_3D(lines):
 
 	# x = A.partialPivLu.solve(b)
 	#not sure if partialPivLu actually does anything...
-
-	return np.linalg.solve(A,b)
+	toreturn = np.linalg.solve(A,b)
+	toreturn = np.reshape(toreturn,(3,))
+	return toreturn
 
 def nearest_intersect_2D(lines):
 	#finds the learest intersection of many lines (which may not be a real intersection)
@@ -125,20 +121,20 @@ def sphere_intersect(line,sphere):
 
 	v = line.direction
 	p = line.origin #put p at origin
-	c = sphere.centre - p
+	c = sphere.center - p
 	r = sphere.radius
 
 	# from wikipedia :)
-	vcvc_cc_rr = np.sq(np.dot(v,c) - np.dot(c,c) + np.sq(r))
+	vcvc_cc_rr = np.square(np.dot(v,c) - np.dot(c,c) + np.square(r))
 	if (vcvc_cc_rr < 0):
 		logger.warning("NO INTERSECTION between line and sphere")
 		return
 	s1 = np.dot(v,c) - np.sqrt(vcvc_cc_rr)
-	s1 = np.dot(v,c) + np.sqrt(vcvc_cc_rr)
+	s2 = np.dot(v,c) + np.sqrt(vcvc_cc_rr)
 
 	p1 = p + s1*v
 	p2 = p + s2*v
-	return (p1,p2)
+	return (p1,p2) #a line intersects a sphere at two points
 
 
 
@@ -147,10 +143,10 @@ def sphere_intersect(line,sphere):
 if __name__ == '__main__':
 
 	#testing stuff
-	huding = geometry.Line2D([5,7],[10,10])
-	huding2 = geometry.Line2D([3,5],[-1,-1])
-	print huding
-	print intersect_2D_lines(huding, huding2)
+	# huding = geometry.Line2D([5,7],[10,10])
+	# huding2 = geometry.Line2D([3,5],[-1,-1])
+	# print huding
+	# print intersect_2D_lines(huding, huding2)
 
 	#testing nearest_intersect_3D
 	huding = geometry.Line3D([0.835233,3.67143,20], [-0.303085,-0.54173,-0.784008])
