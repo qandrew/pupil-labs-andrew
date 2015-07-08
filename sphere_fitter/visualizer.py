@@ -21,22 +21,28 @@ from pyglui.cygl import utils as glutils
 from pyglui.pyfontstash import fontstash as fs
 from trackball import Trackball
 
-
-width, height = (1280,720)
-
 import numpy as np
 import scipy
 import geometry #how do I find this folder?
 import cv2
 
+def convert_fov(fov,width):
+	fov = fov*scipy.pi/180
+	focal_length = (width/2)/np.tan(fov/2)
+	return focal_length
+
 class Visualizer():
-	def __init__(self,name = "unnamed", run_independently = False):
+	def __init__(self,name = "unnamed", run_independently = False, width = 1280, height = 720, focal_length = 554.25625):
 		self.name = name
 		self.sphere = geometry.Sphere()
 		self.ellipses = [] #collection of ellipses to display
 		self.projected_lines = [] #collection of projected lines to display
+
 		self.frame = None #video frame from eye
 		self._window = None
+		self.width = width
+		self.height = height
+		self.focal_length = focal_length
 		self.input = None
 		self.trackball = None
 		self.run_independently = run_independently
@@ -48,6 +54,34 @@ class Visualizer():
 		self.test_ellipse = geometry.Ellipse((0,3),5,3,0)
 
 	############## DRAWING FUNCTIONS ##############################
+
+	def draw_frustum(self,f, scale=1):
+	    # average focal length
+	    #f = (K[0, 0] + K[1, 1]) / 2
+	    # compute distances for setting up the camera pyramid
+	    W = 0.5*self.width
+	    H = 0.5*self.height
+	    Z = f
+	    # scale the pyramid
+	    W *= scale
+	    H *= scale
+	    Z *= scale
+	    # draw it
+	    glColor4f( 1, 0.5, 0, 0.5 )
+	    glBegin( GL_LINE_LOOP )
+	    glVertex3f( 0, 0, 0 )
+	    glVertex3f( -W, H, Z )
+	    glVertex3f( W, H, Z )
+	    glVertex3f( 0, 0, 0 )
+	    glVertex3f( W, H, Z )
+	    glVertex3f( W, -H, Z )
+	    glVertex3f( 0, 0, 0 )
+	    glVertex3f( W, -H, Z )
+	    glVertex3f( -W, -H, Z )
+	    glVertex3f( 0, 0, 0 )
+	    glVertex3f( -W, -H, Z )
+	    glVertex3f( -W, H, Z )
+	    glEnd( )
 
 	def draw_coordinate_system(self,l=1):
 		# Draw x-axis line. RED
@@ -144,7 +178,7 @@ class Visualizer():
 			if self.run_independently:
 				glfwInit()
 			window = glfwGetCurrentContext()					
-			self._window = glfwCreateWindow(width, height, self.name, None, window)
+			self._window = glfwCreateWindow(self.width, self.height, self.name, None, window)
 			glfwMakeContextCurrent(self._window)
 
 			if not self._window:
@@ -180,9 +214,11 @@ class Visualizer():
 
 			self.trackball.push()
 
+			#THINGS I NEED TO DRAW
 			self.draw_sphere(self.test_sphere) #draw the 
 			self.draw_ellipse(self.test_ellipse)
 			self.draw_video_screen(self.video_frame)
+			self.draw_frustum(self.focal_length, scale = .01)
 			self.draw_coordinate_system(20)
 
 			self.trackball.pop()
@@ -246,10 +282,12 @@ class Visualizer():
 		self.window_should_close = True
 
 if __name__ == '__main__':
- 	huding = Visualizer("huding", run_independently = True)
- 	huding.open_window()
- 	a = 0
- 	while huding.update_window():
- 		a += 1
- 	huding.close_window()
- 	print a
+ 	# huding = Visualizer("huding", run_independently = True)
+ 	# huding.open_window()
+ 	# a = 0
+ 	# while huding.update_window():
+ 	# 	a += 1
+ 	# huding.close_window()
+ 	# print a
+
+ 	print convert_fov(60,640)

@@ -54,6 +54,14 @@ class Conic:
 			self.E = float()
 			self.F = float()
 
+	def init_by_coefficients(self,a,b,c,d,e,f):
+		self.A = a
+		self.B = b
+		self.C = c
+		self.D = d
+		self.E = e
+		self.F = f
+
 	def operator(self,x,y):
 		#this function returns the conic based on coordinates x and y
 		if (x == None or y == None):
@@ -192,44 +200,74 @@ class Conicoid:
 
 class Ellipse:
 
-	def __init__(self,center=[0,0],major_radius=0.0,minor_radius=0.0,angle=0.0, conic = None):
+	def __init__(self,center=[0,0],major_radius=0.0,minor_radius=0.0,angle=0.0, conic = None, pupil_ellipse = None):
 		self.center = np.array(center)
 		self.major_radius = major_radius
 		self.minor_radius = minor_radius
-		self.angle = angle
+		self.angle = angle #ANGLE SHOULD BE IN RADIANS!
 		if conic:
 			self._initialize_by_conic(conic)
+		elif pupil_ellipse:
+			self.initialize_by_pupil_ellipse(pupil_ellipse)
+
+	def initialize_by_pupil_ellipse(self, pupil_ellipse):
+		x = pupil_ellipse['center'][0] #- 320 #- width/2 320
+		y = pupil_ellipse['center'][1] #- 240 #- height/2 240
+		self.center = np.array([x,y]) #shift location
+		# self.angle = pupil_ellipse['angle']*scipy.pi/180 #convert degrees to radians
+		a,b = pupil_ellipse['axes']
+		if a > b:
+			self.major_radius = a/2
+			self.minor_radius = b/2
+			self.angle = pupil_ellipse['angle']*scipy.pi/180 #convert degrees to radians
+		else: 
+			self.major_radius = b/2
+			self.minor_radius = a/2
+			self.angle = (pupil_ellipse['angle']+90)*scipy.pi/180
 
 	def _initialize_by_conic(self, conic):
 		#to initialize with a conic, create the ellipse first (temp = Ellipse())
 		#then call with the conic: (temp.initialize_conic(some_conic)). 
 		#this is because python can only have 1 __init__() function.
 
-		self.angle = 0.5*np.arctan2(conic.B,conic,A - conic.C)
-		cost = np.cos(angle)
-		sint = np.sin(angle)
+		self.angle = 0.5*np.arctan2(conic.B,conic.A - conic.C)
+		cost = np.cos(self.angle)
+		sint = np.sin(self.angle)
 		cos_squared = np.square(cost)
 		sin_squared = np.square(sint)
 
-		Ao = conic.F
-		Au = conic.D*cost + conic.E*sint
-		Av = -conic.D*sint + conic.E*cost
-		Auu= conic.A*cos_squared +conic.C*sin_squared +conic.B*sint*cost
-		Avv= conic.A*sin_squared +conic.C*sin_squared -conic.B*sint*cost
+		Ao = conic.F #correct
+		Au = conic.D*cost + conic.E*sint #correct
+		Av = -conic.D*sint + conic.E*cost #correct
+		Auu= conic.A*cos_squared +conic.C*sin_squared +conic.B*sint*cost #correct
+		Avv= conic.A*sin_squared +conic.C*cos_squared -conic.B*sint*cost #correct
+
+		# print "Ao " + str(Ao)
+		# print "Au " + str(Au)
+		# print "Av " + str(Av)
+		# print "Auu " + str(Auu)
+		# print "Avv " + str(Avv)
+
+		#good to here
+
 		#ROTATED = [Ao Au Av Auu Avv]
 		tuCenter = -Au / (2.0*Auu)
-		tvCenter = -Av / (2.0*Auu)
+		tvCenter = -Av / (2.0*Avv)
 		wCenter = Ao - Auu*np.square(tuCenter) - Avv*np.square(tvCenter)
+
+		# print "tuCenter " + str(tuCenter)
+		# print "tvCenter " + str(tvCenter)
+		# print "wCenter " + str(wCenter)
 
 		self.center = [0,0]
 		self.center[0] = tuCenter*cost - tvCenter*sint
-		self.center[1] = tuCenter*sint - tvCenter*cost
+		self.center[1] = tuCenter*sint + tvCenter*cost
 
 		self.major_radius = np.sqrt(abs(-wCenter/Auu))
 		self.minor_radius = np.sqrt(abs(-wCenter/Avv))
 
 		if (self.major_radius < self.minor_radius):
-			major_radius,minor_radius = minor_radius,major_radius
+			self.major_radius,self.minor_radius = self.minor_radius,self.major_radius
 			self.angle = self.angle + scipy.pi/2
 
 		if (self.angle > scipy.pi):
@@ -311,7 +349,36 @@ class Sphere:
 
 if __name__ == '__main__':
 	#testing if modules here work correctly
-	print "yay testing"
+
+	#testing if ellipse -> conic -> ellipse works
 	huding = Ellipse((-141.07,72.6412),46.0443, 34.5685, 0.658744*scipy.pi)
+	print huding
 	hucon = Conic(huding)
-	hucon.operator(None, None)
+	print hucon
+	huding2 = Ellipse(conic = hucon)
+	print huding2
+	hucon2 = Conic(huding2)
+	print hucon2
+
+	# conic1 = Conic()
+	# conic1.init_by_coefficients(738.586,221.731, 480.395, 194615 ,-63999.7, 1.61699e+07)
+	# print conic1
+	# ellipse1 = Ellipse(conic = conic1)
+	# # Expected Ellipse!! { centre: (-146.834,100.498), a: 55.1038, b: 41.364, theta: 0.612932pi }
+	# print ellipse1
+
+	# conic1 = Conic()
+	# conic1.init_by_coefficients(635.478,-22.9379,690.28,-51210.6,-103064,2.02073e+06)
+	# print conic1
+	# ellipse1 = Ellipse(conic = conic1)
+	# # Ellipse!! { centre: (41.6528,75.3455), a: 68.008, b: 65.0259, theta: 0.198202
+	# print ellipse1
+
+	print " "
+
+	# conic1 = Conic()
+	# conic1.init_by_coefficients(738.883,221.739,480.649,194701,-64049.6,1.6178e+07)
+	# print conic1
+	# ellipse1 = Ellipse(conic = conic1)
+	# # Ellipse!! { centre: (-146.834,100.498), a: 55.1038, b: 41.3682, theta: 1.92555
+	# print ellipse1
